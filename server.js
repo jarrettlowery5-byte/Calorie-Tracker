@@ -46,18 +46,23 @@ app.post('/api/profile', (req, res) => {
   }
   const deficit = Math.max(0, Math.min(1500, Math.round(num(b.deficit)) || 500));
   const goal = num(b.goal_weight_lbs) > 0 ? num(b.goal_weight_lbs) : null;
+  const tgt = (v) => (num(v) > 0 && num(v) <= 1000 ? Math.round(num(v)) : null);
   const existing = tdee.getProfile();
   const createdAt = existing ? existing.created_at
     : (isValidDate(b.today) ? b.today : new Date().toISOString().slice(0, 10));
 
   db.prepare(`
-    INSERT INTO profile (id, sex, age, height_in, weight_lbs, activity, deficit, goal_weight_lbs, created_at)
-    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO profile (id, sex, age, height_in, weight_lbs, activity, deficit, goal_weight_lbs,
+                         protein_target, carbs_target, fat_target, created_at)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       sex=excluded.sex, age=excluded.age, height_in=excluded.height_in,
       weight_lbs=excluded.weight_lbs, activity=excluded.activity,
-      deficit=excluded.deficit, goal_weight_lbs=excluded.goal_weight_lbs
-  `).run(b.sex, Math.round(num(b.age)), heightIn, num(b.weight_lbs), b.activity, deficit, goal, createdAt);
+      deficit=excluded.deficit, goal_weight_lbs=excluded.goal_weight_lbs,
+      protein_target=excluded.protein_target, carbs_target=excluded.carbs_target,
+      fat_target=excluded.fat_target
+  `).run(b.sex, Math.round(num(b.age)), heightIn, num(b.weight_lbs), b.activity, deficit, goal,
+         tgt(b.protein_target), tgt(b.carbs_target), tgt(b.fat_target), createdAt);
 
   // First weigh-in seeds the trend chart
   if (!existing) {
@@ -110,6 +115,11 @@ app.get('/api/day', (req, res) => {
       protein: Math.round(totals.protein),
       carbs: Math.round(totals.carbs),
       fat: Math.round(totals.fat),
+    },
+    targets: {
+      protein: profile.protein_target || null,
+      carbs: profile.carbs_target || null,
+      fat: profile.fat_target || null,
     },
     meals: Object.fromEntries(MEALS.map((m) => [m, foods.filter((f) => f.meal === m)])),
     exercises,
@@ -309,6 +319,7 @@ app.get('/api/summary', (req, res) => {
     daysLogged: n,
     avgCalories: n ? Math.round(days.reduce((s, d) => s + d.calories, 0) / n) : null,
     avgProtein: n ? Math.round(days.reduce((s, d) => s + d.protein, 0) / n) : null,
+    proteinTarget: profile.protein_target || null,
     plannedDeficit: profile.deficit,
     actualDeficit: n ? Math.round(days.reduce((s, d) => s + d.actualDeficit, 0) / n) : null,
     days,

@@ -126,11 +126,13 @@
         !(b.activity in ACTIVITY)) throw err('Invalid profile fields.');
     const deficit = Math.max(0, Math.min(1500, Math.round(num(b.deficit)) || 500));
     const goal = num(b.goal_weight_lbs) > 0 ? num(b.goal_weight_lbs) : null;
+    const tgt = (v) => (num(v) > 0 && num(v) <= 1000 ? Math.round(num(v)) : null);
     const existing = db.profile;
     const createdAt = existing ? existing.created_at : (isValidDate(b.today) ? b.today : localToday());
     db.profile = {
       id: 1, sex: b.sex, age: Math.round(num(b.age)), height_in: heightIn, weight_lbs: num(b.weight_lbs),
       activity: b.activity, deficit, goal_weight_lbs: goal, created_at: createdAt,
+      protein_target: tgt(b.protein_target), carbs_target: tgt(b.carbs_target), fat_target: tgt(b.fat_target),
     };
     if (!existing) db.weights.push({ date: createdAt, weight_lbs: num(b.weight_lbs) });
     save();
@@ -163,6 +165,11 @@
       totals: {
         calories: Math.round(totals.calories), protein: Math.round(totals.protein),
         carbs: Math.round(totals.carbs), fat: Math.round(totals.fat),
+      },
+      targets: {
+        protein: profile.protein_target || null,
+        carbs: profile.carbs_target || null,
+        fat: profile.fat_target || null,
       },
       meals: Object.fromEntries(MEALS.map((m) => [m, foods.filter((f) => f.meal === m)])),
       exercises,
@@ -250,6 +257,7 @@
       start, end, daysLogged: n,
       avgCalories: n ? Math.round(days.reduce((s, d) => s + d.calories, 0) / n) : null,
       avgProtein: n ? Math.round(days.reduce((s, d) => s + d.protein, 0) / n) : null,
+      proteinTarget: profile.protein_target || null,
       plannedDeficit: profile.deficit,
       actualDeficit: n ? Math.round(days.reduce((s, d) => s + d.actualDeficit, 0) / n) : null,
       days,

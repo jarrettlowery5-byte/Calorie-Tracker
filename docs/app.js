@@ -160,8 +160,14 @@
 
     const mrow = $('#macro-row');
     mrow.textContent = '';
-    for (const [k, v, unit] of [['Protein', day.totals.protein, 'g'], ['Carbs', day.totals.carbs, 'g'], ['Fat', day.totals.fat, 'g']]) {
-      mrow.append(el('div', { class: 'macro' }, el('div', { class: 'v' }, `${v}${unit}`), el('div', { class: 'k' }, k)));
+    const targets = day.targets || {};
+    for (const [k, v, key] of [['Protein', day.totals.protein, 'protein'], ['Carbs', day.totals.carbs, 'carbs'], ['Fat', day.totals.fat, 'fat']]) {
+      const target = targets[key];
+      mrow.append(el('div', { class: 'macro' },
+        el('div', { class: 'v' }, target ? `${v}/${target}g` : `${v}g`),
+        target ? el('div', { class: 'macro-meter' },
+          el('div', { class: 'macro-meter-fill', style: `width:${Math.min(100, (v / target) * 100)}%` })) : null,
+        el('div', { class: 'k' }, k)));
     }
 
     // Copy yesterday
@@ -666,9 +672,11 @@
     const tiles = $('#week-tiles');
     tiles.textContent = '';
     const deficitDelta = s.actualDeficit != null ? s.actualDeficit - s.plannedDeficit : null;
+    const proteinDelta = (s.avgProtein != null && s.proteinTarget) ? s.avgProtein - s.proteinTarget : null;
     const tileData = [
       ['Avg calories', s.avgCalories != null ? kcal(s.avgCalories) : '—', null],
-      ['Avg protein', s.avgProtein != null ? `${s.avgProtein}g` : '—', null],
+      ['Avg protein', s.avgProtein != null ? `${s.avgProtein}g` : '—',
+        proteinDelta == null ? null : [`${proteinDelta >= 0 ? '+' : '−'}${Math.abs(proteinDelta)}g vs ${s.proteinTarget}g target`, proteinDelta >= 0 ? 'good' : 'bad']],
       ['Actual deficit', s.actualDeficit != null ? kcal(s.actualDeficit) : '—',
         deficitDelta == null ? null : [`${deficitDelta >= 0 ? '+' : '−'}${kcal(Math.abs(deficitDelta))} vs plan (${kcal(s.plannedDeficit)})`, deficitDelta >= 0 ? 'good' : 'bad']],
       ['Days logged', `${s.daysLogged}/7`, null],
@@ -782,6 +790,11 @@
       el('label', {}, 'Activity level', actSel),
       field('Daily deficit (kcal)', 'deficit', 'number', p.deficit, { min: 0, max: 1500, step: 50 }),
       field('Goal weight (lbs)', 'goal_weight_lbs', 'number', p.goal_weight_lbs, { step: 0.1 }),
+      el('p', { class: 'hint', style: 'margin:2px 0 10px' }, 'Daily macro targets (grams, optional) — shown as progress on the Today screen.'),
+      el('div', { class: 'row2' },
+        field('Protein target', 'protein_target', 'number', p.protein_target, { min: 0, max: 1000 }),
+        field('Carbs target', 'carbs_target', 'number', p.carbs_target, { min: 0, max: 1000 })),
+      field('Fat target', 'fat_target', 'number', p.fat_target, { min: 0, max: 1000 }),
       el('hr', { style: 'border:none;border-top:1px solid var(--grid);margin:4px 0 14px' }),
       el('label', {}, 'Anthropic API key ', el('span', { class: 'hint' }, 'enables AI estimation · stays on this device'),
         el('input', { type: 'password', name: 'api_key', value: window.store.getApiKey(), placeholder: 'sk-ant-…', autocomplete: 'off' })),

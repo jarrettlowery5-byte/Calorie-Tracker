@@ -16,6 +16,9 @@ db.exec(`
     activity TEXT NOT NULL,           -- sedentary|light|moderate|very|extra
     deficit INTEGER NOT NULL DEFAULT 500,
     goal_weight_lbs REAL,
+    protein_target REAL,
+    carbs_target REAL,
+    fat_target REAL,
     created_at TEXT NOT NULL          -- YYYY-MM-DD (local date at setup)
   );
 
@@ -70,5 +73,10 @@ db.exec(`
     UNIQUE (period_start, period_end)
   );
 `);
+
+// Migrations for databases created before these columns existed.
+for (const col of ['protein_target', 'carbs_target', 'fat_target']) {
+  try { db.exec(`ALTER TABLE profile ADD COLUMN ${col} REAL`); } catch {}
+}
 
 module.exports = db;
