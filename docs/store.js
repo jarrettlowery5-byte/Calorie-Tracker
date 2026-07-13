@@ -48,7 +48,8 @@
     return bmr * (ACTIVITY[profile.activity] || 1.2);
   }
   const adjustmentOffset = () => db.adjustments.reduce((s, a) => s + a.adjustment, 0);
-  const effectiveTdee = (p) => formulaTdee(p, currentWeight() || p.weight_lbs) + adjustmentOffset();
+  const manualAdjustment = (p) => p.calorie_adjustment || 0;
+  const effectiveTdee = (p) => formulaTdee(p, currentWeight() || p.weight_lbs) + adjustmentOffset() + manualAdjustment(p);
 
   // 7-day rolling average ending at `date`; falls back to nearest raw entry.
   function trendWeightAt(date) {
@@ -103,7 +104,7 @@
     const weightChange = wEnd - wStart;
     const observedTdee = avgIntake - (weightChange * KCAL_PER_LB) / PERIOD_DAYS - avgExercise;
     const priorOffset = db.adjustments.filter((a) => a.period_end < start).reduce((s, a) => s + a.adjustment, 0);
-    const expectedTdee = formulaTdee(profile, (wStart + wEnd) / 2) + priorOffset;
+    const expectedTdee = formulaTdee(profile, (wStart + wEnd) / 2) + priorOffset + manualAdjustment(profile);
     const adjustment = Math.max(-MAX_ADJUSTMENT, Math.min(MAX_ADJUSTMENT, observedTdee - expectedTdee));
     return {
       adjustment: Math.round(adjustment),
@@ -127,12 +128,15 @@
     const deficit = Math.max(0, Math.min(1500, Math.round(num(b.deficit)) || 500));
     const goal = num(b.goal_weight_lbs) > 0 ? num(b.goal_weight_lbs) : null;
     const tgt = (v) => (num(v) > 0 && num(v) <= 1000 ? Math.round(num(v)) : null);
+    const cadj = num(b.calorie_adjustment) >= -1000 && num(b.calorie_adjustment) <= 1000
+      ? Math.round(num(b.calorie_adjustment)) : 0;
     const existing = db.profile;
     const createdAt = existing ? existing.created_at : (isValidDate(b.today) ? b.today : localToday());
     db.profile = {
       id: 1, sex: b.sex, age: Math.round(num(b.age)), height_in: heightIn, weight_lbs: num(b.weight_lbs),
       activity: b.activity, deficit, goal_weight_lbs: goal, created_at: createdAt,
       protein_target: tgt(b.protein_target), carbs_target: tgt(b.carbs_target), fat_target: tgt(b.fat_target),
+      calorie_adjustment: cadj,
     };
     if (!existing) db.weights.push({ date: createdAt, weight_lbs: num(b.weight_lbs) });
     save();
@@ -149,7 +153,8 @@
     const exerciseCals = exercises.reduce((s, e) => s + e.calories, 0);
     const formula = formulaTdee(profile, currentWeight() || profile.weight_lbs);
     const offset = adjustmentOffset();
-    const budget = formula + offset - profile.deficit + exerciseCals;
+    const manual = manualAdjustment(profile);
+    const budget = formula + offset + manual - profile.deficit + exerciseCals;
     const totals = foods.reduce((t, f) => ({
       calories: t.calories + f.calories, protein: t.protein + f.protein,
       carbs: t.carbs + f.carbs, fat: t.fat + f.fat,
@@ -158,7 +163,8 @@
       date,
       budget: {
         formulaTdee: Math.round(formula), adjustmentOffset: Math.round(offset),
-        effectiveTdee: Math.round(formula + offset), deficit: profile.deficit,
+        manualAdjustment: Math.round(manual),
+        effectiveTdee: Math.round(formula + offset + manual), deficit: profile.deficit,
         exerciseCals: Math.round(exerciseCals), budget: Math.round(budget),
         remaining: Math.round(budget - totals.calories),
       },
@@ -295,6 +301,7 @@
       currentWeight: round1(w),
       formulaTdee: Math.round(formulaTdee(profile, w)),
       adjustmentOffset: Math.round(adjustmentOffset()),
+      manualAdjustment: Math.round(manualAdjustment(profile)),
       effectiveTdee: Math.round(effectiveTdee(profile)),
       adjustments: [...db.adjustments].sort((a, b) => a.period_end < b.period_end ? 1 : -1),
     };

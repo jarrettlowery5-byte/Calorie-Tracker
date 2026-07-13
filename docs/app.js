@@ -152,7 +152,8 @@
     const math = $('#budget-math');
     math.textContent = '';
     math.append(
-      el('span', {}, el('b', {}, kcal(b.effectiveTdee)), ' TDEE'),
+      el('span', {}, el('b', {}, kcal(b.effectiveTdee)),
+        b.manualAdjustment ? ` TDEE (incl. ${b.manualAdjustment > 0 ? '+' : '−'}${kcal(Math.abs(b.manualAdjustment))} adj.)` : ' TDEE'),
       el('span', {}, '− ', el('b', {}, kcal(b.deficit)), ' deficit'),
       el('span', {}, '+ ', el('b', {}, kcal(b.exerciseCals)), ' exercise'),
       el('span', {}, '= ', el('b', {}, kcal(b.budget)), ' budget'),
@@ -707,6 +708,7 @@
     tb.append(
       el('div', { class: 'tdee-line' }, el('span', {}, 'Mifflin-St Jeor estimate'), el('b', {}, `${kcal(t.formulaTdee)} kcal`)),
       el('div', { class: 'tdee-line' }, el('span', {}, 'Adaptive correction'), el('b', {}, `${t.adjustmentOffset >= 0 ? '+' : '−'}${kcal(Math.abs(t.adjustmentOffset))} kcal`)),
+      t.manualAdjustment ? el('div', { class: 'tdee-line' }, el('span', {}, 'Manual adjustment'), el('b', {}, `${t.manualAdjustment > 0 ? '+' : '−'}${kcal(Math.abs(t.manualAdjustment))} kcal`)) : null,
       el('div', { class: 'tdee-line' }, el('span', {}, el('strong', {}, 'Effective TDEE')), el('b', {}, `${kcal(t.effectiveTdee)} kcal`)),
     );
     if (t.adjustments.length) {
@@ -795,6 +797,9 @@
         field('Protein target', 'protein_target', 'number', p.protein_target, { min: 0, max: 1000 }),
         field('Carbs target', 'carbs_target', 'number', p.carbs_target, { min: 0, max: 1000 })),
       field('Fat target', 'fat_target', 'number', p.fat_target, { min: 0, max: 1000 }),
+      el('label', {}, 'Daily calorie adjustment (kcal) ',
+        el('span', { class: 'hint' }, 'added to your TDEE — e.g. +400 while breastfeeding; clear when it no longer applies'),
+        el('input', { type: 'number', name: 'calorie_adjustment', value: p.calorie_adjustment || '', min: -1000, max: 1000, step: 50, placeholder: '0' })),
       el('hr', { style: 'border:none;border-top:1px solid var(--grid);margin:4px 0 14px' }),
       el('label', {}, 'Anthropic API key ', el('span', { class: 'hint' }, 'enables AI estimation · stays on this device'),
         el('input', { type: 'password', name: 'api_key', value: window.store.getApiKey(), placeholder: 'sk-ant-…', autocomplete: 'off' })),

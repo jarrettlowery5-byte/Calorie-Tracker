@@ -47,22 +47,24 @@ app.post('/api/profile', (req, res) => {
   const deficit = Math.max(0, Math.min(1500, Math.round(num(b.deficit)) || 500));
   const goal = num(b.goal_weight_lbs) > 0 ? num(b.goal_weight_lbs) : null;
   const tgt = (v) => (num(v) > 0 && num(v) <= 1000 ? Math.round(num(v)) : null);
+  const cadj = num(b.calorie_adjustment) >= -1000 && num(b.calorie_adjustment) <= 1000
+    ? Math.round(num(b.calorie_adjustment)) : 0;
   const existing = tdee.getProfile();
   const createdAt = existing ? existing.created_at
     : (isValidDate(b.today) ? b.today : new Date().toISOString().slice(0, 10));
 
   db.prepare(`
     INSERT INTO profile (id, sex, age, height_in, weight_lbs, activity, deficit, goal_weight_lbs,
-                         protein_target, carbs_target, fat_target, created_at)
-    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         protein_target, carbs_target, fat_target, calorie_adjustment, created_at)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       sex=excluded.sex, age=excluded.age, height_in=excluded.height_in,
       weight_lbs=excluded.weight_lbs, activity=excluded.activity,
       deficit=excluded.deficit, goal_weight_lbs=excluded.goal_weight_lbs,
       protein_target=excluded.protein_target, carbs_target=excluded.carbs_target,
-      fat_target=excluded.fat_target
+      fat_target=excluded.fat_target, calorie_adjustment=excluded.calorie_adjustment
   `).run(b.sex, Math.round(num(b.age)), heightIn, num(b.weight_lbs), b.activity, deficit, goal,
-         tgt(b.protein_target), tgt(b.carbs_target), tgt(b.fat_target), createdAt);
+         tgt(b.protein_target), tgt(b.carbs_target), tgt(b.fat_target), cadj, createdAt);
 
   // First weigh-in seeds the trend chart
   if (!existing) {
@@ -88,7 +90,8 @@ app.get('/api/day', (req, res) => {
 
   const formula = tdee.formulaTdee(profile, tdee.currentWeight() || profile.weight_lbs);
   const offset = tdee.adjustmentOffset();
-  const effective = formula + offset;
+  const manual = tdee.manualAdjustment(profile);
+  const effective = formula + offset + manual;
   const budget = effective - profile.deficit + exerciseCals;
 
   const totals = foods.reduce(
@@ -104,6 +107,7 @@ app.get('/api/day', (req, res) => {
     budget: {
       formulaTdee: Math.round(formula),
       adjustmentOffset: Math.round(offset),
+      manualAdjustment: Math.round(manual),
       effectiveTdee: Math.round(effective),
       deficit: profile.deficit,
       exerciseCals: Math.round(exerciseCals),
@@ -360,6 +364,7 @@ app.get('/api/tdee', (req, res) => {
     currentWeight: Math.round(w * 10) / 10,
     formulaTdee: Math.round(tdee.formulaTdee(profile, w)),
     adjustmentOffset: Math.round(tdee.adjustmentOffset()),
+    manualAdjustment: Math.round(tdee.manualAdjustment(profile)),
     effectiveTdee: Math.round(tdee.effectiveTdee(profile)),
     adjustments: db.prepare('SELECT * FROM tdee_adjustments ORDER BY period_end DESC').all(),
   });

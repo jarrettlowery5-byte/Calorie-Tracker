@@ -19,6 +19,7 @@ db.exec(`
     protein_target REAL,
     carbs_target REAL,
     fat_target REAL,
+    calorie_adjustment REAL,          -- manual kcal/day added to TDEE (e.g. breastfeeding)
     created_at TEXT NOT NULL          -- YYYY-MM-DD (local date at setup)
   );
 
@@ -75,7 +76,7 @@ db.exec(`
 `);
 
 // Migrations for databases created before these columns existed.
-for (const col of ['protein_target', 'carbs_target', 'fat_target']) {
+for (const col of ['protein_target', 'carbs_target', 'fat_target', 'calorie_adjustment']) {
   try { db.exec(`ALTER TABLE profile ADD COLUMN ${col} REAL`); } catch {}
 }
 
