@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+  <title>Calorie Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body>
+  <!-- One-time setup -->
+  <section id="setup-view" class="view" hidden>
+    <div class="setup-card">
+      <h1>Welcome</h1>
+      <p class="sub">A one-time setup — you won't be asked again.</p>
+      <form id="setup-form">
+        <label>Sex
+          <select name="sex" required>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </label>
+        <label>Age
+          <input type="number" name="age" min="13" max="100" required inputmode="numeric">
+        </label>
+        <div class="row2">
+          <label>Height (ft)
+            <input type="number" name="height_ft" min="3" max="7" required inputmode="numeric">
+          </label>
+          <label>Height (in)
+            <input type="number" name="height_in" min="0" max="11" value="0" required inputmode="numeric">
+          </label>
+        </div>
+        <label>Weight (lbs)
+          <input type="number" name="weight_lbs" min="50" max="800" step="0.1" required inputmode="decimal">
+        </label>
+        <label>Activity level
+          <select name="activity" required>
+            <option value="sedentary">Sedentary (desk job, little exercise)</option>
+            <option value="light">Lightly active (1–3 workouts/week)</option>
+            <option value="moderate" selected>Moderately active (3–5 workouts/week)</option>
+            <option value="very">Very active (6–7 workouts/week)</option>
+            <option value="extra">Extra active (physical job + training)</option>
+          </select>
+        </label>
+        <label>Daily deficit (kcal) <span class="hint">default 500 ≈ 1 lb/week</span>
+          <input type="number" name="deficit" min="0" max="1500" step="50" value="500" inputmode="numeric">
+        </label>
+        <label>Goal weight (lbs) <span class="hint">optional</span>
+          <input type="number" name="goal_weight_lbs" min="50" max="800" step="0.1" inputmode="decimal">
+        </label>
+        <label>Anthropic API key <span class="hint">optional — enables AI estimates, stays on this device</span>
+          <input type="password" name="api_key" placeholder="sk-ant-…" autocomplete="off">
+        </label>
+        <button type="submit" class="btn primary">Start tracking</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Today -->
+  <section id="today-view" class="view" hidden>
+    <header class="date-nav">
+      <button class="icon-btn" id="date-prev" aria-label="Previous day">‹</button>
+      <button id="date-label" class="date-label"></button>
+      <button class="icon-btn" id="date-next" aria-label="Next day">›</button>
+    </header>
+    <div id="tdee-correction" class="notice" hidden></div>
+    <div class="budget-card">
+      <div class="hero-wrap">
+        <div class="hero" id="hero-remaining">–</div>
+        <div class="hero-label">kcal remaining</div>
+      </div>
+      <div class="meter"><div class="meter-fill" id="budget-meter"></div></div>
+      <div class="budget-math" id="budget-math"></div>
+      <div class="macros" id="macro-row"></div>
+    </div>
+    <div id="copy-yesterday-wrap" hidden>
+      <button class="btn ghost full" id="copy-yesterday">⧉ Copy yesterday’s meals</button>
+    </div>
+    <div id="meals"></div>
+    <div class="section-card" id="exercise-card">
+      <div class="section-head">
+        <h2>Exercise</h2>
+        <button class="btn small" id="add-exercise">+ Add</button>
+      </div>
+      <ul class="entry-list" id="exercise-list"></ul>
+    </div>
+  </section>
+
+  <!-- Weight -->
+  <section id="weight-view" class="view" hidden>
+    <header class="view-head"><h1>Weight</h1></header>
+    <div class="section-card">
+      <form id="weigh-form" class="weigh-form">
+        <input type="date" id="weigh-date" required>
+        <input type="number" id="weigh-lbs" placeholder="lbs" min="50" max="800" step="0.1" required inputmode="decimal">
+        <button class="btn primary" type="submit">Log</button>
+      </form>
+    </div>
+    <div class="section-card viz-root">
+      <div class="chart-legend" id="chart-legend"></div>
+      <div class="chart-wrap" id="chart-wrap">
+        <svg id="weight-chart" role="img" aria-label="Weight trend chart"></svg>
+        <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+      </div>
+      <p class="chart-empty" id="chart-empty" hidden>Log a few weigh-ins to see your trend.</p>
+    </div>
+    <div class="section-card" id="projection-card" hidden>
+      <h2>Goal projection</h2>
+      <div id="projection-body"></div>
+    </div>
+    <div class="section-card">
+      <div class="section-head"><h2>Recent weigh-ins</h2></div>
+      <ul class="entry-list" id="weight-list"></ul>
+    </div>
+  </section>
+
+  <!-- Stats: weekly summary + history + TDEE -->
+  <section id="stats-view" class="view" hidden>
+    <header class="view-head"><h1>Stats</h1></header>
+    <div class="section-card">
+      <div class="section-head">
+        <button class="icon-btn" id="week-prev" aria-label="Previous week">‹</button>
+        <h2 id="week-label">This week</h2>
+        <button class="icon-btn" id="week-next" aria-label="Next week">›</button>
+      </div>
+      <div class="stat-tiles" id="week-tiles"></div>
+      <table class="data-table" id="week-table" hidden>
+        <thead><tr><th>Day</th><th>kcal</th><th>Protein</th><th>Deficit</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="section-card">
+      <h2>Adaptive TDEE</h2>
+      <div id="tdee-body"></div>
+    </div>
+    <div class="section-card">
+      <h2>History</h2>
+      <ul class="entry-list" id="history-list"></ul>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="settings-view" class="view" hidden>
+    <header class="view-head"><h1>Settings</h1></header>
+    <div class="section-card">
+      <form id="settings-form"></form>
+    </div>
+  </section>
+
+  <!-- Day detail sheet (history) -->
+  <div class="sheet-backdrop" id="day-sheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head"><h2 id="day-sheet-title"></h2><button class="icon-btn" data-close>✕</button></div>
+      <div class="sheet-body" id="day-sheet-body"></div>
+    </div>
+  </div>
+
+  <!-- Add food sheet -->
+  <div class="sheet-backdrop" id="food-sheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head"><h2 id="food-sheet-title">Add food</h2><button class="icon-btn" data-close>✕</button></div>
+      <div class="seg" id="food-mode">
+        <button data-mode="ai" class="on">Describe</button>
+        <button data-mode="photo">Photo</button>
+        <button data-mode="saved">Saved</button>
+        <button data-mode="manual">Manual</button>
+      </div>
+      <div class="sheet-body">
+        <div id="food-ai" class="food-pane">
+          <form id="food-ai-form">
+            <input type="text" id="food-ai-text" placeholder="e.g. 12 oz ribeye with a baked potato" autocomplete="off">
+            <button class="btn primary full" type="submit">Estimate with AI</button>
+          </form>
+        </div>
+        <div id="food-photo" class="food-pane" hidden>
+          <label class="photo-drop">
+            <input type="file" id="food-photo-input" accept="image/*" capture="environment" hidden>
+            <span id="photo-drop-label">📷 Take or choose a photo of your meal</span>
+          </label>
+          <input type="text" id="food-photo-note" placeholder="Optional context (e.g. restaurant portion)">
+          <button class="btn primary full" id="food-photo-go" disabled>Estimate with AI</button>
+        </div>
+        <div id="food-saved" class="food-pane" hidden></div>
+        <div id="food-manual" class="food-pane" hidden>
+          <form id="food-manual-form">
+            <input type="text" name="name" placeholder="Food name" required>
+            <div class="row2">
+              <input type="number" name="calories" placeholder="kcal" min="0" required inputmode="numeric">
+              <input type="number" name="protein" placeholder="Protein g" min="0" step="0.1" inputmode="decimal">
+            </div>
+            <div class="row2">
+              <input type="number" name="carbs" placeholder="Carbs g" min="0" step="0.1" inputmode="decimal">
+              <input type="number" name="fat" placeholder="Fat g" min="0" step="0.1" inputmode="decimal">
+            </div>
+            <button class="btn primary full" type="submit">Add</button>
+          </form>
+        </div>
+        <div id="food-results" hidden></div>
+        <div id="food-busy" class="busy" hidden><span class="spinner"></span> Estimating…</div>
+        <div id="food-error" class="error" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add exercise sheet -->
+  <div class="sheet-backdrop" id="exercise-sheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head"><h2>Log exercise</h2><button class="icon-btn" data-close>✕</button></div>
+      <div class="sheet-body">
+        <form id="exercise-ai-form">
+          <input type="text" id="exercise-ai-text" placeholder="e.g. 45 min spin class, hard effort" autocomplete="off">
+          <button class="btn primary full" type="submit">Estimate burn with AI</button>
+        </form>
+        <div id="exercise-result" hidden></div>
+        <div id="exercise-busy" class="busy" hidden><span class="spinner"></span> Estimating…</div>
+        <div id="exercise-error" class="error" hidden></div>
+        <details class="manual-details">
+          <summary>Enter manually</summary>
+          <form id="exercise-manual-form">
+            <input type="text" name="name" placeholder="Activity" required>
+            <input type="number" name="calories" placeholder="Calories burned" min="1" required inputmode="numeric">
+            <button class="btn primary full" type="submit">Add</button>
+          </form>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <nav class="tabbar" id="tabbar" hidden>
+    <button data-view="today" class="on"><span class="t-ico">🍽</span>Today</button>
+    <button data-view="weight"><span class="t-ico">⚖️</span>Weight</button>
+    <button data-view="stats"><span class="t-ico">📊</span>Stats</button>
+    <button data-view="settings"><span class="t-ico">⚙️</span>Settings</button>
+  </nav>
+
+  <script src="store.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

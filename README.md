@@ -14,7 +14,24 @@ all data stored in a single SQLite file on your machine.
 - **Adaptive TDEE**: every 2 weeks, average intake vs. actual weight change is compared and your TDEE estimate is corrected (shown to you, capped at ±300 kcal per period).
 - **Weekly summary** (avg calories, protein, actual vs. planned deficit) and browsable per-day history.
 
-## Run it
+## Two ways to run it
+
+### 1. Browser-only (recommended for phones — nothing to install)
+
+The `docs/` folder is a fully static build: all logic and data live in your browser
+(localStorage), and AI calls go straight from the browser to the Anthropic API with a
+key you paste into Settings (stored only on your device). Host it on GitHub Pages:
+
+1. Make the repository public (Settings → General → Danger Zone → Change visibility) —
+   Pages is free only for public repos, and the repo contains only code, never your data.
+2. Repo Settings → Pages → "Deploy from a branch" → pick the branch, folder `/docs` → Save.
+3. Open `https://<username>.github.io/Calorie-Tracker/` on your phone and use
+   Share → "Add to Home Screen" to install it like an app (works offline).
+
+Back up occasionally with Settings → Export backup — clearing the browser's site data
+erases the log.
+
+### 2. Self-hosted Node server
 
 Requires Node.js 22+.
 
