@@ -1,0 +1,20 @@
+{
+  "name": "calorie-tracker",
+  "version": "1.0.0",
+  "description": "Calories",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:41729/git/jarrettlowery5-byte/Calorie-Tracker"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "express": "^5.2.1"
+  }
+}
