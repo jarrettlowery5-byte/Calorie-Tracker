@@ -1,13 +1,13 @@
 /* ---------- Tokens (reference dataviz palette; light + dark selected) ---------- */
 :root {
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
-  --grid: #e1e0d9;
-  --baseline: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.10);
+  --page: #e7ece1;
+  --surface: #f3f5ee;
+  --text-primary: #131512;
+  --text-secondary: #4d5349;
+  --text-muted: #7f877a;
+  --grid: #d5dccb;
+  --baseline: #b3bfa7;
+  --border: rgba(19, 21, 18, 0.12);
   --accent: #2a78d6;        /* series 1: weight / trend */
   --accent-soft: #86b6ef;   /* raw weigh-in dots (blue step 250) */
   --proj-actual: #1baf7a;   /* series 2: actual-rate projection */
