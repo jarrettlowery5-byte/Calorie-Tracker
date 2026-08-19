@@ -25,6 +25,8 @@ const remoteApi = {
   updateSettings: (patch) => request("/settings", { method: "PUT", body: patch }),
 
   getRecipes: () => request("/recipes"),
+  createRecipe: (recipe) => request("/recipes", { method: "POST", body: recipe }),
+  importRecipe: (params) => request("/recipes/import", { method: "POST", body: params }),
   patchRecipe: (id, patch) => request(`/recipes/${id}`, { method: "PATCH", body: patch }),
   deleteRecipe: (id) => request(`/recipes/${id}`, { method: "DELETE" }),
   generateRecipes: (params) =>

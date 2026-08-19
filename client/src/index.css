@@ -3,31 +3,113 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-paper text-ink font-body antialiased;
+    background-image:
+      radial-gradient(1200px 400px at 50% -240px, rgba(47, 93, 58, 0.07), transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+  /* Keep tap targets from flashing blue on iOS */
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* We draw our own clear button on the search field */
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
   }
 }
 
 @layer components {
+  /* ---- surfaces ---- */
   .card {
-    @apply bg-white rounded-2xl border border-hairline shadow-sm;
+    @apply bg-white rounded-2xl border border-hairline;
+    box-shadow: 0 1px 2px rgba(34, 32, 27, 0.04), 0 8px 24px -16px rgba(34, 32, 27, 0.18);
   }
+  .card-quiet {
+    @apply bg-white/70 rounded-2xl border border-hairline;
+  }
+  .card-pressable {
+    @apply card transition-transform duration-150 active:scale-[0.99];
+  }
+
+  /* ---- type ---- */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+  .section-title {
+    @apply font-display text-xl font-semibold tracking-tight;
+  }
+  .page-title {
+    @apply font-display text-[26px] leading-tight font-semibold tracking-tight;
+  }
+
+  /* ---- controls ---- */
   .chip {
-    @apply px-3 py-1.5 rounded-full border text-sm font-medium transition-colors select-none cursor-pointer;
+    @apply px-3 py-1.5 rounded-full border text-sm font-medium transition-all select-none cursor-pointer active:scale-95;
   }
   .chip-off {
-    @apply bg-white border-hairline text-muted hover:border-herb/40;
+    @apply bg-white border-hairline text-muted hover:border-herb/40 hover:text-ink;
   }
   .chip-on {
-    @apply bg-herb-soft border-herb text-herb;
+    @apply bg-herb-soft border-herb/60 text-herb shadow-[inset_0_1px_0_rgba(255,255,255,0.6)];
   }
   .btn {
-    @apply rounded-xl px-4 py-2.5 font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
   }
   .btn-primary {
     @apply btn bg-herb text-white hover:bg-herb/90;
+    box-shadow: 0 1px 2px rgba(47, 93, 58, 0.24), 0 8px 20px -12px rgba(47, 93, 58, 0.6);
   }
   .btn-ghost {
-    @apply btn bg-transparent border border-hairline text-ink hover:bg-herb-soft;
+    @apply btn bg-white border border-hairline text-ink hover:border-herb/40 hover:bg-herb-soft/40;
+  }
+  .btn-quiet {
+    @apply btn bg-transparent text-muted hover:text-ink;
+  }
+  .input {
+    @apply w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm text-ink
+           placeholder:text-muted/70 outline-none transition-shadow
+           focus:border-herb/50 focus:ring-2 focus:ring-herb/15;
+  }
+  .label {
+    @apply block text-sm font-medium text-muted mb-1;
+  }
+
+  /* ---- nav ---- */
+  .navpill {
+    @apply px-3.5 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap;
+  }
+  .navpill-on {
+    @apply bg-herb text-white;
+  }
+  .navpill-off {
+    @apply text-muted hover:text-ink hover:bg-herb-soft/60;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

@@ -4,7 +4,11 @@
 // know which mode it's running in.
 import seedRecipes from "../data/seed-recipes.json";
 import { buildGroceryList } from "./grocery";
-import { generateRecipesInBrowser, generateStepsInBrowser } from "./generate";
+import {
+  generateRecipesInBrowser,
+  generateStepsInBrowser,
+  importRecipeInBrowser,
+} from "./generate";
 
 const KEY = "the-weekly-v1";
 
@@ -164,6 +168,28 @@ export const localApi = {
     const saved = generated.map((r) => insertRecipe(r, "ai"));
     save();
     return { recipes: saved };
+  },
+
+  // Save a recipe the cook typed in themselves.
+  async createRecipe(recipe) {
+    load();
+    const saved = insertRecipe(recipe, "user");
+    if (recipe.instructions) saved.steps = { ...recipe.instructions, sides: [] };
+    save();
+    return { ...saved };
+  },
+
+  async importRecipe({ url, text, servings }) {
+    load();
+    const parsed = await importRecipeInBrowser({
+      url,
+      text,
+      servings: servings ?? state.settings.servings,
+    });
+    const saved = insertRecipe(parsed, "user");
+    saved.steps = { ...parsed.instructions, sides: [] };
+    save();
+    return { ...saved };
   },
 
   async generateSteps(recipeId, { servings, includedSideIds = [] }) {

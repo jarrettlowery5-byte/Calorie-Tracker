@@ -11,6 +11,7 @@ export function AppProvider({ children }) {
   const [grocery, setGrocery] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [tab, setTab] = useState("home"); // which section is showing
 
   const showToast = useCallback((message) => {
     setToast(message);
@@ -54,6 +55,18 @@ export function AppProvider({ children }) {
         const { recipes: created } = await api.generateRecipes(params);
         setRecipes((prev) => [...created, ...prev]);
         return created;
+      },
+
+      async importRecipe(params) {
+        const saved = await api.importRecipe(params);
+        setRecipes((prev) => [saved, ...prev]);
+        return saved;
+      },
+
+      async createRecipe(recipe) {
+        const saved = await api.createRecipe(recipe);
+        setRecipes((prev) => [saved, ...prev]);
+        return saved;
       },
 
       async generateSteps(recipeId, params) {
@@ -157,8 +170,8 @@ export function AppProvider({ children }) {
   );
 
   const value = useMemo(
-    () => ({ settings, recipes, plan, pantry, grocery, loading, toast, ...actions }),
-    [settings, recipes, plan, pantry, grocery, loading, toast, actions]
+    () => ({ settings, recipes, plan, pantry, grocery, loading, toast, tab, go: setTab, ...actions }),
+    [settings, recipes, plan, pantry, grocery, loading, toast, tab, actions]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

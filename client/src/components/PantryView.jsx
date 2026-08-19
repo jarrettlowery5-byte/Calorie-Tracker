@@ -45,21 +45,25 @@ export default function PantryView() {
 
   return (
     <div className="space-y-4">
-      <section className="card p-4">
-        <h2 className="font-display text-lg font-semibold mb-1">Pantry staples</h2>
-        <p className="text-xs text-muted mb-3">
-          Items marked "have" are automatically left off the grocery list and the budget.
+      <header>
+        <p className="eyebrow">Pantry</p>
+        <h1 className="page-title mt-1">What's already in the house</h1>
+        <p className="text-sm text-muted mt-1.5 leading-relaxed">
+          Anything marked as owned is left off the grocery list and the budget.
         </p>
+      </header>
+
+      <section className="card p-4">
         <div className="flex gap-2">
           <input
-            className="flex-1 rounded-xl border border-hairline bg-white px-3 py-2 text-sm"
+            className="input flex-1"
             placeholder="e.g. olive oil, rice, garlic powder…"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && add()}
           />
           <select
-            className="rounded-xl border border-hairline bg-white px-2 py-2 text-sm"
+            className="input w-auto"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
@@ -72,7 +76,7 @@ export default function PantryView() {
       </section>
 
       <section className="card p-4">
-        <h2 className="font-display text-lg font-semibold mb-1">Quick add staples</h2>
+        <h2 className="section-title mb-1">Quick add staples</h2>
         <p className="text-xs text-muted mb-2">
           Tap what you already have — tap again to remove it.
         </p>
@@ -124,7 +128,7 @@ export default function PantryView() {
       ].map(([label, items]) =>
         items.length === 0 ? null : (
           <section key={label}>
-            <h3 className="font-display font-semibold px-1 mb-1.5">{label}</h3>
+            <h3 className="section-title text-lg px-1 mb-1.5">{label}</h3>
             <div className="card divide-y divide-hairline">
               {items.map((item) => (
                 <div key={item.id} className="px-4 py-2.5 flex items-center gap-3">

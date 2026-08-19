@@ -136,12 +136,17 @@ export async function generateStepsInBrowser({ recipe, servings, includedSides }
   return parsed.data;
 }
 
-function buildPrompt({ mealTypes, appliances, servings, remainingBudget, exclusions }) {
+function buildPrompt({ mealTypes, appliances, servings, remainingBudget, exclusions, query }) {
   const lines = [
     "Suggest 4 dinner recipes for a home cook planning a week of meals on a budget.",
     `Household servings: ${servings}.`,
     `Remaining weekly grocery budget: $${Number(remainingBudget).toFixed(2)} — keep each recipe's estimated cost modest so several recipes can fit within it.`,
   ];
+  if (query) {
+    lines.push(
+      `The cook is searching for: "${query}". Every suggestion must fit that description.`
+    );
+  }
   if (mealTypes?.length) {
     lines.push(`Preferred meal styles (match these): ${mealTypes.join(", ")}.`);
   }
@@ -195,4 +200,126 @@ export async function generateRecipesInBrowser(params) {
     throw new Error("The model returned recipes in an unexpected format — try again.");
   }
   return parsed.data.recipes;
+}
+
+// ---- importing an existing recipe (from a link, or text the user typed) ----
+
+const ImportedRecipeSchema = RecipeSchema.extend({
+  sourceName: z.string(),
+  instructions: z.object({
+    prep: z.array(z.string()),
+    steps: z.array(StepSchema),
+    tips: z.array(z.string()),
+  }),
+});
+
+const ImportResponseSchema = z.object({ recipe: ImportedRecipeSchema });
+
+function buildImportPrompt({ text, url, servings }) {
+  return [
+    url
+      ? `Below is the text of a recipe web page (${url}). Extract the recipe from it, ignoring navigation, ads, comments, and any life story around it.`
+      : "Below is a recipe someone wrote down. Structure it.",
+    `Scale the ingredient quantities to ${servings} servings and set "servings" to ${servings}.`,
+    "",
+    "Rules:",
+    '- sourceName: the site or cookbook it came from, or "" if unknown.',
+    "- ingredients: every ingredient needed, each with a realistic USD price for Walmart/Aldi in estCost",
+    "  (this is what drives the grocery list and budget, so never leave prices at 0).",
+    "- estimatedCost: the sum of the ingredient costs.",
+    "- caloriesPerServing / proteinPerServing: your best estimate if the source doesn't say.",
+    "- appliance: the main appliance used (Stove, Oven, Air fryer, Instant Pot, Crock pot, Grill, Microwave).",
+    "- tags: short descriptors that fit (e.g. High-protein, Quick, Comfort, Italian, Vegetarian).",
+    "- method: one concise sentence describing the dish.",
+    "- sides: leave as an empty array unless the source explicitly includes side dishes.",
+    "- instructions.prep: 1-4 things to do before cooking starts.",
+    "- instructions.steps: the cooking steps in order, one action each, keeping the source's specifics",
+    "  (temperatures, times, doneness cues). minutes = roughly how long that step takes.",
+    "- instructions.tips: up to 3 short notes from the source worth keeping.",
+    '- If the text is not a recipe at all, return a recipe named "NOT_A_RECIPE" with empty arrays.',
+    "",
+    "--- SOURCE TEXT ---",
+    text.slice(0, 60000),
+  ].join("\n");
+}
+
+function htmlToText(html) {
+  return html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<\/(p|div|li|h[1-6]|tr|section)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .trim();
+}
+
+// A page on another domain can't be fetched directly from the browser, so we
+// go through public reader/proxy services. They're tried in order and the
+// first one that returns usable text wins; if all fail the UI falls back to
+// asking the cook to paste the recipe text.
+const READERS = [
+  { url: (u) => `https://r.jina.ai/${u}`, parse: (t) => t },
+  { url: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, parse: htmlToText },
+  { url: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`, parse: htmlToText },
+];
+
+export async function fetchRecipePageInBrowser(url) {
+  const failures = [];
+  for (const reader of READERS) {
+    try {
+      const res = await fetch(reader.url(url), { redirect: "follow" });
+      if (!res.ok) {
+        failures.push(`${res.status}`);
+        continue;
+      }
+      const text = reader.parse(await res.text());
+      if (text && text.length > 400) return text;
+      failures.push("too short");
+    } catch (err) {
+      failures.push(err.message);
+    }
+  }
+  throw new Error(
+    "Couldn't read that page from your browser (some sites block it). Paste the recipe text instead — that always works."
+  );
+}
+
+export async function importRecipeInBrowser({ text, url, servings }) {
+  const apiKey = getStoredApiKey();
+  if (!apiKey) {
+    throw new Error("Add your Anthropic API key in Settings (⚙️) first.");
+  }
+  const source = text || (await fetchRecipePageInBrowser(url));
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  const response = await client.messages.parse({
+    model: MODEL,
+    max_tokens: 16000,
+    system:
+      "You extract recipes into structured data. Keep the source's actual quantities and steps — do not invent a different dish.",
+    messages: [{ role: "user", content: buildImportPrompt({ text: source, url, servings }) }],
+    output_config: { format: zodOutputFormat(ImportResponseSchema, "recipe") },
+  });
+
+  let recipe = response.parsed_output?.recipe;
+  if (!recipe) {
+    const raw = response.content.find((b) => b.type === "text")?.text ?? "";
+    const cleaned = raw.replace(/^```(?:json)?\s*/m, "").replace(/```\s*$/m, "").trim();
+    const parsed = ImportResponseSchema.safeParse(JSON.parse(cleaned));
+    if (!parsed.success) throw new Error("Couldn't read a recipe out of that.");
+    recipe = parsed.data.recipe;
+  }
+  if (recipe.name === "NOT_A_RECIPE" || !recipe.ingredients?.length) {
+    throw new Error("That didn't look like a recipe — try pasting the recipe text instead.");
+  }
+  return recipe;
 }

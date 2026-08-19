@@ -19,23 +19,29 @@ function saveProgress(all) {
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
 }
 
-const dishImageUrl = (recipe) =>
-  `https://image.pollinations.ai/prompt/${encodeURIComponent(
-    `professional food photography of ${recipe.name}, ${recipe.cuisine} dish, plated, appetizing, natural light`
-  )}?width=768&height=432&nologo=true&seed=${recipe.id}`;
-
 export default function CookView() {
-  const { plan } = useApp();
+  const { plan, go } = useApp();
   const [openId, setOpenId] = useState(null);
 
   const openEntry = plan.find((p) => p.id === openId);
 
   if (plan.length === 0) {
     return (
-      <p className="text-center text-muted py-12 text-sm">
-        Nothing to cook yet — plan some meals first and they'll show up here with
-        step-by-step instructions.
-      </p>
+      <div className="space-y-5">
+        <header>
+          <p className="eyebrow">Cook</p>
+          <h1 className="page-title mt-1">Nothing to cook yet.</h1>
+        </header>
+        <div className="card p-6 text-center">
+          <p className="text-sm text-muted mb-3">
+            Plan a few meals and they'll appear here with step-by-step instructions
+            for the night you cook them.
+          </p>
+          <button className="btn-primary" onClick={() => go("recipes")}>
+            Find some meals
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -53,7 +59,10 @@ export default function CookView() {
 
   return (
     <div className="space-y-3">
-      <h2 className="font-display text-lg font-semibold px-1">What are you cooking?</h2>
+      <header className="mb-1">
+        <p className="eyebrow">Cook</p>
+        <h1 className="page-title mt-1">What are you making?</h1>
+      </header>
       {sorted.map((entry) => {
         const recipe = entry.recipe;
         if (!recipe) return null;
@@ -62,16 +71,9 @@ export default function CookView() {
           <button
             key={entry.id}
             onClick={() => setOpenId(entry.id)}
-            className="card w-full text-left overflow-hidden flex items-stretch"
+            className="card-pressable w-full text-left overflow-hidden flex items-stretch hover:border-herb/40 transition-colors"
           >
-            <img
-              src={dishImageUrl(recipe)}
-              alt=""
-              className="w-24 h-24 object-cover bg-herb-soft shrink-0"
-              loading="lazy"
-              onError={(e) => e.currentTarget.remove()}
-            />
-            <div className="p-3 min-w-0 flex-1">
+            <div className="p-4 min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 {entry.dayOfWeek && (
                   <span
@@ -86,7 +88,7 @@ export default function CookView() {
                   <span className="text-[10px] text-muted">✓ instructions ready</span>
                 )}
               </div>
-              <h3 className="font-display font-semibold leading-snug mt-1">{recipe.name}</h3>
+              <h3 className="font-display text-[17px] font-semibold leading-snug mt-1.5">{recipe.name}</h3>
               <p className="text-xs text-muted mt-0.5">
                 {recipe.cookTimeMin} min · {recipe.appliance}
               </p>
@@ -182,14 +184,8 @@ function CookingSession({ entry, onBack }) {
       </button>
 
       <section className="card overflow-hidden">
-        <img
-          src={dishImageUrl(recipe)}
-          alt=""
-          className="w-full h-40 object-cover bg-herb-soft"
-          onError={(e) => e.currentTarget.remove()}
-        />
         <div className="p-4">
-          <h2 className="font-display text-xl font-semibold leading-snug">{recipe.name}</h2>
+          <h2 className="page-title leading-snug">{recipe.name}</h2>
           <p className="text-xs text-muted mt-1">
             {servings} servings · {recipe.cookTimeMin} min · {recipe.appliance}
             {entry.dayOfWeek ? ` · ${entry.dayOfWeek}` : ""}
@@ -320,7 +316,7 @@ function CookingSession({ entry, onBack }) {
 
           {instructions.tips.length > 0 && (
             <section className="card p-4">
-              <h3 className="font-display font-semibold mb-2">Good to know</h3>
+              <h3 className="section-title text-lg mb-2">Good to know</h3>
               <ul className="text-sm space-y-1.5">
                 {instructions.tips.map((tip, i) => (
                   <li key={i} className="flex gap-2">
@@ -345,7 +341,7 @@ function CookingSession({ entry, onBack }) {
 function StepGroup({ title, children }) {
   return (
     <section>
-      <h3 className="font-display font-semibold px-1 mb-1.5">{title}</h3>
+      <h3 className="section-title text-lg px-1 mb-1.5">{title}</h3>
       <div className="card divide-y divide-hairline">{children}</div>
     </section>
   );

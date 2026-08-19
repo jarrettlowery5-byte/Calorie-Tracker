@@ -4,7 +4,7 @@ import { money, useApp } from "../store";
 import { groceryListText } from "../lib/ics";
 
 export default function GroceryView() {
-  const { grocery, showToast } = useApp();
+  const { grocery, showToast, go } = useApp();
   const [groupBy, setGroupBy] = useState("aisle"); // 'aisle' | 'store'
 
   const groups = useMemo(() => {
@@ -20,9 +20,21 @@ export default function GroceryView() {
 
   if (!grocery || grocery.items.length === 0) {
     return (
-      <p className="text-center text-muted py-12 text-sm">
-        Your grocery list builds itself from the weekly plan — add some meals first.
-      </p>
+      <div className="space-y-5">
+        <header>
+          <p className="eyebrow">Grocery list</p>
+          <h1 className="page-title mt-1">Nothing to buy yet.</h1>
+        </header>
+        <div className="card p-6 text-center">
+          <p className="text-sm text-muted mb-3">
+            Your list builds itself from the meals you plan — deduplicated, priced, and
+            minus whatever is already in your pantry.
+          </p>
+          <button className="btn-primary" onClick={() => go("recipes")}>
+            Find some meals
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -35,15 +47,22 @@ export default function GroceryView() {
 
   return (
     <div className="space-y-4">
+      <header>
+        <p className="eyebrow">Grocery list</p>
+        <h1 className="page-title mt-1">
+          {grocery.items.filter((i) => !i.acquired).length} things to buy
+        </h1>
+      </header>
+
       <section className="card p-4">
         <div className="grid grid-cols-2 gap-2 text-center mb-3">
           <div className="bg-paper rounded-lg py-2">
-            <p className="font-semibold">{money(totals.estimatedTotal)}</p>
-            <p className="text-[10px] text-muted uppercase tracking-wide">estimated total</p>
+            <p className="font-display text-xl font-semibold">{money(totals.estimatedTotal)}</p>
+            <p className="eyebrow mt-0.5 !tracking-[0.1em]">estimated total</p>
           </div>
           <div className="bg-paper rounded-lg py-2">
-            <p className="font-semibold text-herb">{money(totals.stillToBuy)}</p>
-            <p className="text-[10px] text-muted uppercase tracking-wide">still to buy</p>
+            <p className="font-display text-xl font-semibold text-herb">{money(totals.stillToBuy)}</p>
+            <p className="eyebrow mt-0.5 !tracking-[0.1em]">still to buy</p>
           </div>
         </div>
         {totals.pantrySavings > 0 && (
@@ -60,7 +79,7 @@ export default function GroceryView() {
         </p>
       </section>
 
-      <div className="flex rounded-xl border border-hairline overflow-hidden text-sm font-medium">
+      <div className="flex rounded-xl border border-hairline overflow-hidden text-sm font-medium bg-white">
         <button
           className={`flex-1 py-2 ${groupBy === "aisle" ? "bg-herb text-white" : "bg-white text-muted"}`}
           onClick={() => setGroupBy("aisle")}
@@ -78,7 +97,7 @@ export default function GroceryView() {
       {groups.map(([label, items]) => (
         <section key={label}>
           <div className="flex items-baseline justify-between px-1 mb-1.5">
-            <h3 className="font-display font-semibold">{label}</h3>
+            <h3 className="section-title text-lg">{label}</h3>
             {groupBy === "store" && totals.byStore[label] && (
               <p className="text-xs text-muted">
                 {money(totals.byStore[label].stillToBuy)} to buy · {money(totals.byStore[label].total)} total
@@ -95,7 +114,7 @@ export default function GroceryView() {
 
       {grocery.pantryExcluded.length > 0 && (
         <section>
-          <h3 className="font-display font-semibold px-1 mb-1.5 text-muted">Already in your pantry</h3>
+          <h3 className="section-title text-lg px-1 mb-1.5 text-muted">Already in your pantry</h3>
           <div className="card divide-y divide-hairline">
             {grocery.pantryExcluded.map((item) => (
               <div key={item.name} className="px-4 py-2.5 flex justify-between text-sm text-muted">

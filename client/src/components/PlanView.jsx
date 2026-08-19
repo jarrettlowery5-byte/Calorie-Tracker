@@ -6,7 +6,7 @@ import { buildIcs, downloadIcs } from "../lib/ics";
 const LONG_COOK_MIN = 120;
 
 export default function PlanView() {
-  const { plan, settings, grocery, updatePlanEntry, removePlanEntry, showToast } = useApp();
+  const { plan, settings, grocery, updatePlanEntry, removePlanEntry, showToast, go } = useApp();
 
   const byDay = useMemo(() => {
     const groups = { Unassigned: [] };
@@ -35,16 +35,33 @@ export default function PlanView() {
 
   if (plan.length === 0) {
     return (
-      <p className="text-center text-muted py-12 text-sm">
-        Nothing planned yet — add meals from the Recipes tab and they'll show up here.
-      </p>
+      <div className="space-y-5">
+        <header>
+          <p className="eyebrow">Weekly plan</p>
+          <h1 className="page-title mt-1">Nothing planned yet.</h1>
+        </header>
+        <div className="card p-6 text-center">
+          <p className="text-sm text-muted mb-3">
+            Add meals from Recipes and they'll show up here, ready to slot into days.
+          </p>
+          <button className="btn-primary" onClick={() => go("recipes")}>
+            Browse recipes
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <header>
+        <p className="eyebrow">Weekly plan</p>
+        <h1 className="page-title mt-1">
+          {plan.length} {plan.length === 1 ? "meal" : "meals"} this week
+        </h1>
+      </header>
+
       <section className="card p-4">
-        <h2 className="font-display text-lg font-semibold mb-2">This week</h2>
         <div className="grid grid-cols-3 gap-2 text-center">
           <Summary label="plan cost" value={money(weekTotals.cost)} />
           <Summary label="cal/serv · week" value={weekTotals.calories} />
@@ -71,7 +88,7 @@ export default function PlanView() {
         return (
           <section key={day}>
             <div className="flex items-baseline justify-between mb-2 px-1">
-              <h3 className="font-display font-semibold">{day === "Unassigned" ? "Not yet assigned" : day}</h3>
+              <h3 className="section-title text-lg">{day === "Unassigned" ? "Not yet assigned" : day}</h3>
               {day !== "Unassigned" && (
                 <p className="text-xs text-muted">
                   {dayCookMin} min · {appliances.join(", ")} · {dayNutrition.calories} cal · {dayNutrition.protein}g protein
@@ -122,7 +139,7 @@ function PlanEntry({ entry, settings, onUpdate, onRemove }) {
     <article className="card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h4 className="font-display font-semibold leading-snug">{recipe.name}</h4>
+          <h4 className="font-display text-[17px] font-semibold leading-snug">{recipe.name}</h4>
           <p className="text-xs text-muted mt-0.5">
             {recipe.cookTimeMin} min · {recipe.appliance} · {money(cost)} ·{" "}
             {nutrition.calories} cal/serv
@@ -139,7 +156,7 @@ function PlanEntry({ entry, settings, onUpdate, onRemove }) {
 
       <div className="flex flex-wrap items-center gap-2 mt-3">
         <select
-          className="rounded-lg border border-hairline bg-white px-2 py-1.5 text-sm"
+          className="rounded-xl border border-hairline bg-white px-2.5 py-1.5 text-sm"
           value={entry.dayOfWeek ?? ""}
           onChange={(e) => onUpdate(entry.id, { dayOfWeek: e.target.value || null })}
         >
@@ -198,8 +215,8 @@ function PlanEntry({ entry, settings, onUpdate, onRemove }) {
 function Summary({ label, value }) {
   return (
     <div className="bg-paper rounded-lg py-2">
-      <p className="font-semibold">{value}</p>
-      <p className="text-[10px] text-muted uppercase tracking-wide">{label}</p>
+      <p className="font-display text-lg font-semibold">{value}</p>
+      <p className="eyebrow mt-0.5 !tracking-[0.1em]">{label}</p>
     </div>
   );
 }

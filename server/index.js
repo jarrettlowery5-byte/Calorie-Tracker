@@ -27,7 +27,12 @@ import {
 } from "./db.js";
 import { seedIfEmpty } from "./seed.js";
 import { buildGroceryList } from "./lib/grocery.js";
-import { generateRecipes, generateSteps } from "./lib/generate.js";
+import {
+  generateRecipes,
+  generateSteps,
+  importRecipe,
+  fetchRecipePage,
+} from "./lib/generate.js";
 
 seedIfEmpty();
 
@@ -83,6 +88,28 @@ api.post("/recipes/generate", async (req, res) => {
     res
       .status(err.status ?? 502)
       .json({ error: "Couldn't generate right now — try again.", detail: err.message });
+  }
+});
+
+// ---- import an existing recipe from a link or pasted text ----
+api.post("/recipes/import", async (req, res) => {
+  const { url, text, servings } = req.body ?? {};
+  if (!url && !text?.trim()) {
+    return res.status(400).json({ error: "Provide a recipe link or the recipe text." });
+  }
+  try {
+    const source = text?.trim() || (await fetchRecipePage(url));
+    const parsed = await importRecipe({
+      text: source,
+      url,
+      servings: servings ?? getSettings().servings,
+    });
+    const saved = createRecipe(parsed, "user");
+    const withSteps = saveRecipeSteps(saved.id, { ...parsed.instructions, sides: [] });
+    res.status(201).json(withSteps);
+  } catch (err) {
+    console.error("Recipe import failed:", err.message);
+    res.status(err.status ?? 502).json({ error: err.message });
   }
 });
 
