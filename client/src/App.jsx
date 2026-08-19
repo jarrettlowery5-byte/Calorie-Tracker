@@ -5,12 +5,14 @@ import RecipesView from "./components/RecipesView";
 import PlanView from "./components/PlanView";
 import GroceryView from "./components/GroceryView";
 import PantryView from "./components/PantryView";
+import CookView from "./components/CookView";
 import SettingsSheet from "./components/SettingsSheet";
 
 const TABS = [
   { id: "recipes", label: "Recipes", icon: "🍳" },
   { id: "plan", label: "Plan", icon: "🗓️" },
   { id: "grocery", label: "Grocery", icon: "🛒" },
+  { id: "cook", label: "Cook", icon: "👩‍🍳" },
   { id: "pantry", label: "Pantry", icon: "🧺" },
 ];
 
@@ -49,11 +51,12 @@ export default function App() {
         {tab === "recipes" && <RecipesView />}
         {tab === "plan" && <PlanView />}
         {tab === "grocery" && <GroceryView />}
+        {tab === "cook" && <CookView />}
         {tab === "pantry" && <PantryView />}
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-hairline">
-        <div className="max-w-2xl mx-auto grid grid-cols-4">
+        <div className="max-w-2xl mx-auto grid grid-cols-5">
           {TABS.map((t) => (
             <button
               key={t.id}

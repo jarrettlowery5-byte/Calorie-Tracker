@@ -4,7 +4,7 @@
 // know which mode it's running in.
 import seedRecipes from "../data/seed-recipes.json";
 import { buildGroceryList } from "./grocery";
-import { generateRecipesInBrowser } from "./generate";
+import { generateRecipesInBrowser, generateStepsInBrowser } from "./generate";
 
 const KEY = "the-weekly-v1";
 
@@ -74,6 +74,7 @@ function insertRecipe(recipe, source) {
     rating: 0,
     notes: "",
     createdAt: new Date().toISOString(),
+    steps: null, // cooking instructions, generated on demand from the Cook tab
     ingredients: (recipe.ingredients ?? []).map((i) => ({
       id: nextId(),
       name: i.name,
@@ -163,6 +164,19 @@ export const localApi = {
     const saved = generated.map((r) => insertRecipe(r, "ai"));
     save();
     return { recipes: saved };
+  },
+
+  async generateSteps(recipeId, { servings, includedSideIds = [] }) {
+    load();
+    const recipe = state.recipes.find((r) => r.id === recipeId);
+    if (!recipe) throw new Error("Recipe not found");
+    recipe.steps = await generateStepsInBrowser({
+      recipe,
+      servings: servings ?? recipe.servings,
+      includedSides: recipe.sides.filter((s) => includedSideIds.includes(s.id)),
+    });
+    save();
+    return { ...recipe };
   },
 
   async getPlan() {

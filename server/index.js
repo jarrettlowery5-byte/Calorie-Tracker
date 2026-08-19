@@ -17,6 +17,7 @@ import {
   addPantryItem,
   updatePantryItem,
   deletePantryItem,
+  saveRecipeSteps,
   listPrices,
   upsertPrice,
   setItemStore,
@@ -26,7 +27,7 @@ import {
 } from "./db.js";
 import { seedIfEmpty } from "./seed.js";
 import { buildGroceryList } from "./lib/grocery.js";
-import { generateRecipes } from "./lib/generate.js";
+import { generateRecipes, generateSteps } from "./lib/generate.js";
 
 seedIfEmpty();
 
@@ -82,6 +83,26 @@ api.post("/recipes/generate", async (req, res) => {
     res
       .status(err.status ?? 502)
       .json({ error: "Couldn't generate right now — try again.", detail: err.message });
+  }
+});
+
+// ---- cooking instructions (generated once, then cached on the recipe) ----
+api.post("/recipes/:id/steps", async (req, res) => {
+  const recipe = getRecipe(Number(req.params.id));
+  if (!recipe) return res.status(404).json({ error: "Recipe not found" });
+  const { servings, includedSideIds = [] } = req.body ?? {};
+  try {
+    const instructions = await generateSteps({
+      recipe,
+      servings: servings ?? recipe.servings,
+      includedSides: recipe.sides.filter((s) => includedSideIds.includes(s.id)),
+    });
+    res.json(saveRecipeSteps(recipe.id, instructions));
+  } catch (err) {
+    console.error("Step generation failed:", err.message);
+    res
+      .status(err.status ?? 502)
+      .json({ error: "Couldn't write the instructions right now — try again.", detail: err.message });
   }
 });
 

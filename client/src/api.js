@@ -29,6 +29,8 @@ const remoteApi = {
   deleteRecipe: (id) => request(`/recipes/${id}`, { method: "DELETE" }),
   generateRecipes: (params) =>
     request("/recipes/generate", { method: "POST", body: params }),
+  generateSteps: (recipeId, params) =>
+    request(`/recipes/${recipeId}/steps`, { method: "POST", body: params }),
 
   getPlan: () => request("/plan"),
   addToPlan: (recipeId) => request("/plan", { method: "POST", body: { recipeId } }),

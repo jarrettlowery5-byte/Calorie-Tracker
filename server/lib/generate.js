@@ -52,6 +52,83 @@ const ResponseSchema = z.object({
   recipes: z.array(RecipeSchema),
 });
 
+const StepSchema = z.object({
+  text: z.string(),
+  minutes: z.number(),
+});
+
+const StepsResponseSchema = z.object({
+  prep: z.array(z.string()),
+  steps: z.array(StepSchema),
+  sides: z.array(z.object({ name: z.string(), steps: z.array(StepSchema) })),
+  tips: z.array(z.string()),
+});
+
+export function buildStepsPrompt({ recipe, servings, includedSides = [] }) {
+  const lines = [
+    `Write clear step-by-step cooking instructions for "${recipe.name}" (${recipe.cuisine}).`,
+    `Cooking for ${servings} servings. Main appliance: ${recipe.appliance}. Total time: about ${recipe.cookTimeMin} minutes.`,
+    `Summary of the dish: ${recipe.method}`,
+    "",
+    "Ingredients (quantities are for the stated servings):",
+    ...recipe.ingredients.map((i) => `- ${i.name}: ${i.quantity}`),
+  ];
+  if (includedSides.length) {
+    lines.push("", "Also give separate instructions for these sides being served with it:");
+    for (const side of includedSides) {
+      lines.push(
+        `- ${side.name} (${side.note}) — ingredients: ${
+          side.ingredients.map((i) => `${i.name} ${i.quantity}`).join(", ") || "cook's choice"
+        }`
+      );
+    }
+  }
+  lines.push(
+    "",
+    "Rules:",
+    "- prep: 1-4 short things to do before cooking starts (chop, preheat, pat dry, marinate).",
+    "- steps: 4-9 numbered steps for the main dish, in order. One action per step, written for a home cook.",
+    "  Each step names the specific ingredients and amounts it uses, plus temperatures, pan sizes, and doneness cues",
+    "  (e.g. 'until golden and 165°F inside'). minutes = roughly how long that step takes (0 if instant).",
+    "- sides: instructions for each side listed above, timed so everything finishes together. Empty array if no sides.",
+    "- tips: 1-3 short practical notes (make-ahead, substitutions, leftovers, common mistake to avoid).",
+    "- Do not restate the ingredient list as a step. Be specific, not generic."
+  );
+  return lines.join("\n");
+}
+
+export async function generateSteps({ recipe, servings, includedSides }) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    const err = new Error(
+      "ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key."
+    );
+    err.status = 503;
+    throw err;
+  }
+  const client = new Anthropic();
+
+  const response = await client.messages.parse({
+    model: MODEL,
+    max_tokens: 8000,
+    system:
+      "You are an experienced home cook writing recipe instructions that are easy to follow while standing at the stove. Return data exactly matching the requested schema.",
+    messages: [{ role: "user", content: buildStepsPrompt({ recipe, servings, includedSides }) }],
+    output_config: { format: zodOutputFormat(StepsResponseSchema, "instructions") },
+  });
+
+  if (response.parsed_output) return response.parsed_output;
+
+  const text = response.content.find((b) => b.type === "text")?.text ?? "";
+  const cleaned = text.replace(/^```(?:json)?\s*/m, "").replace(/```\s*$/m, "").trim();
+  const parsed = StepsResponseSchema.safeParse(JSON.parse(cleaned));
+  if (!parsed.success) {
+    const err = new Error("Model returned instructions in an unexpected format.");
+    err.status = 502;
+    throw err;
+  }
+  return parsed.data;
+}
+
 function buildPrompt({ mealTypes, appliances, servings, remainingBudget, exclusions }) {
   const lines = [
     "Suggest 4 dinner recipes for a home cook planning a week of meals on a budget.",

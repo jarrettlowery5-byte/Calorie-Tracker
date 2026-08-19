@@ -108,6 +108,13 @@ db.prepare(
   "INSERT OR IGNORE INTO settings (id, budget, servings, default_store, dietary_exclusions) VALUES (1, 120, 4, 'Walmart', '[]')"
 ).run();
 
+// Cooking instructions are generated on demand and cached on the recipe.
+// Added after the first release, so existing databases get the column here.
+const recipeColumns = db.prepare("PRAGMA table_info(recipes)").all().map((c) => c.name);
+if (!recipeColumns.includes("steps")) {
+  db.exec("ALTER TABLE recipes ADD COLUMN steps TEXT");
+}
+
 export const normalizeName = (name) => name.trim().toLowerCase().replace(/\s+/g, " ");
 
 // ---- recipes ----
@@ -135,6 +142,7 @@ function hydrateRecipe(row) {
     rating: row.rating,
     notes: row.notes,
     createdAt: row.created_at,
+    steps: row.steps ? JSON.parse(row.steps) : null,
     ingredients: ingredientRows.all(row.id).map((i) => ({
       id: i.id,
       name: i.name,
@@ -235,6 +243,11 @@ export function updateRecipeMeta(id, { isFavorite, rating, notes }) {
   if (sets.length) {
     db.prepare(`UPDATE recipes SET ${sets.join(", ")} WHERE id = @id`).run(params);
   }
+  return getRecipe(id);
+}
+
+export function saveRecipeSteps(id, steps) {
+  db.prepare("UPDATE recipes SET steps = ? WHERE id = ?").run(JSON.stringify(steps), id);
   return getRecipe(id);
 }
 

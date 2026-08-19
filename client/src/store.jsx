@@ -56,6 +56,13 @@ export function AppProvider({ children }) {
         return created;
       },
 
+      async generateSteps(recipeId, params) {
+        const updated = await api.generateSteps(recipeId, params);
+        setRecipes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+        setPlan(await api.getPlan()); // plan entries embed the recipe
+        return updated;
+      },
+
       async toggleFavorite(recipe) {
         const updated = await api.patchRecipe(recipe.id, { isFavorite: !recipe.isFavorite });
         setRecipes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
