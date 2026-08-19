@@ -1,4 +1,4 @@
-# The Weekly
+# Appetite
 
 A mobile-first meal planning + grocery budget app for one household. Set a weekly
 budget and serving size, pick meal moods and appliances, get AI recipe

@@ -96,7 +96,7 @@ export function buildIcs({ plan, settings, grocery }) {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//The Weekly//Meal Plan//EN",
+    "PRODID:-//Appetite//Meal Plan//EN",
     ...events,
     "END:VCALENDAR",
   ].join("\r\n");
@@ -107,7 +107,7 @@ export function downloadIcs(content) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "the-weekly.ics";
+  a.download = "appetite.ics";
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -119,7 +119,7 @@ export function groceryListText(grocery, { forWalmart = false } = {}) {
   if (forWalmart) {
     return toBuy.map((i) => i.displayName).join("\n");
   }
-  const lines = [`The Weekly — grocery list (est. $${grocery.totals.stillToBuy.toFixed(2)} to buy)`];
+  const lines = [`Appetite — grocery list (est. $${grocery.totals.stillToBuy.toFixed(2)} to buy)`];
   const byStore = {};
   for (const item of toBuy) {
     (byStore[item.store] ??= []).push(item);

@@ -1,11 +1,11 @@
-name: Publish The Weekly to GitHub Pages
+name: Publish Appetite to GitHub Pages
 
 # GitHub Pages for this repo serves the docs/ folder of the calorie tracker's
 # branch. Rather than switching Pages to a different mode (which would take
-# that app down), this workflow builds The Weekly and commits the output to
+# that app down), this workflow builds Appetite and commits the output to
 # docs/weekly/ on that same branch, so both apps stay live:
 #   https://<user>.github.io/Calorie-Tracker/         -> calorie tracker
-#   https://<user>.github.io/Calorie-Tracker/weekly/  -> The Weekly
+#   https://<user>.github.io/Calorie-Tracker/weekly/  -> Appetite
 
 on:
   push:
@@ -55,6 +55,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to publish."
           else
-            git commit -m "Publish The Weekly to docs/weekly (from ${GITHUB_SHA::7})"
+            git commit -m "Publish Appetite to docs/weekly (from ${GITHUB_SHA::7})"
             git push origin claude/calorie-macro-tracker-jvqdkk
           fi

@@ -22,7 +22,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="font-display text-2xl text-herb">The Weekly</p>
+        <p className="font-display text-2xl text-herb">Appetite</p>
       </div>
     );
   }
@@ -32,7 +32,7 @@ export default function App() {
       <header className="sticky top-0 z-30 bg-paper/95 backdrop-blur border-b border-hairline">
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
           <h1 className="font-display font-semibold text-2xl tracking-tight">
-            The Weekly
+            Appetite
           </h1>
           <button
             onClick={() => setSettingsOpen(true)}

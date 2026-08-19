@@ -166,7 +166,7 @@ if (fs.existsSync(dist)) {
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
-  console.log(`The Weekly backend listening on http://localhost:${port}`);
+  console.log(`Appetite backend listening on http://localhost:${port}`);
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn("⚠ ANTHROPIC_API_KEY not set — AI recipe generation is disabled until you add it to .env");
   }
