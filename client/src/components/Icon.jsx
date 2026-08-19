@@ -17,6 +17,7 @@ const paths = {
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 7v5.2l3.3 2",
   back: "M15 5l-7 7 7 7",
   close: "M6 6l12 12M18 6 6 18",
+  camera: "M3 8.5A1.5 1.5 0 0 1 4.5 7h2.7l1.3-2h6.9l1.3 2h2.8A1.5 1.5 0 0 1 21 8.5v10A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5v-10ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z",
 };
 
 export default function Icon({ name, className = "w-5 h-5", strokeWidth = 1.6, filled = false }) {

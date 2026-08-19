@@ -179,11 +179,12 @@ export const localApi = {
     return { ...saved };
   },
 
-  async importRecipe({ url, text, servings }) {
+  async importRecipe({ url, text, images, servings }) {
     load();
     const parsed = await importRecipeInBrowser({
       url,
       text,
+      images,
       servings: servings ?? state.settings.servings,
     });
     const saved = insertRecipe(parsed, "user");

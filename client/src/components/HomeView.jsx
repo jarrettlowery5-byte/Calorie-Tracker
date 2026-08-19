@@ -32,7 +32,7 @@ export default function HomeView() {
 
   const actions = [
     { id: "recipes", icon: "search", title: "Find recipes", sub: "Search or get ideas" },
-    { id: "import", icon: "plus", title: "Add a recipe", sub: "From a link or written down" },
+    { id: "import", icon: "plus", title: "Add a recipe", sub: "Photo, link, or written down" },
     { id: "grocery", icon: "cart", title: "Grocery list", sub: toBuy.length ? `${toBuy.length} left to buy` : "Nothing to buy" },
     { id: "cook", icon: "chef", title: "Cook a meal", sub: plan.length ? "Step-by-step" : "Plan one first" },
   ];

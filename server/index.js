@@ -37,7 +37,7 @@ import {
 seedIfEmpty();
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "30mb" })); // recipe photos arrive as base64
 
 const api = express.Router();
 
@@ -93,15 +93,16 @@ api.post("/recipes/generate", async (req, res) => {
 
 // ---- import an existing recipe from a link or pasted text ----
 api.post("/recipes/import", async (req, res) => {
-  const { url, text, servings } = req.body ?? {};
-  if (!url && !text?.trim()) {
-    return res.status(400).json({ error: "Provide a recipe link or the recipe text." });
+  const { url, text, images, servings } = req.body ?? {};
+  if (!url && !text?.trim() && !images?.length) {
+    return res.status(400).json({ error: "Provide a recipe link, photo, or the recipe text." });
   }
   try {
-    const source = text?.trim() || (await fetchRecipePage(url));
+    const source = images?.length ? text?.trim() : text?.trim() || (await fetchRecipePage(url));
     const parsed = await importRecipe({
       text: source,
       url,
+      images,
       servings: servings ?? getSettings().servings,
     });
     const saved = createRecipe(parsed, "user");

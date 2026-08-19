@@ -215,9 +215,11 @@ const ImportedRecipeSchema = RecipeSchema.extend({
 
 const ImportResponseSchema = z.object({ recipe: ImportedRecipeSchema });
 
-function buildImportPrompt({ text, url, servings }) {
+function buildImportPrompt({ text, url, servings, fromPhotos }) {
   return [
-    url
+    fromPhotos
+      ? "The attached photo(s) show a recipe — a recipe card, a cookbook page, a handwritten note, or a screenshot. Read every part of it, including handwriting, and extract the recipe. If several photos are given they are pages of the SAME recipe, so combine them."
+      : url
       ? `Below is the text of a recipe web page (${url}). Extract the recipe from it, ignoring navigation, ads, comments, and any life story around it.`
       : "Below is a recipe someone wrote down. Structure it.",
     `Scale the ingredient quantities to ${servings} servings and set "servings" to ${servings}.`,
@@ -237,9 +239,8 @@ function buildImportPrompt({ text, url, servings }) {
     "  (temperatures, times, doneness cues). minutes = roughly how long that step takes.",
     "- instructions.tips: up to 3 short notes from the source worth keeping.",
     '- If the text is not a recipe at all, return a recipe named "NOT_A_RECIPE" with empty arrays.',
-    "",
-    "--- SOURCE TEXT ---",
-    text.slice(0, 60000),
+    '- If the photos are unreadable or are not a recipe, return a recipe named "NOT_A_RECIPE" with empty arrays.',
+    ...(text ? ["", "--- SOURCE TEXT ---", text.slice(0, 60000)] : []),
   ].join("\n");
 }
 
@@ -293,20 +294,31 @@ export async function fetchRecipePageInBrowser(url) {
   );
 }
 
-export async function importRecipeInBrowser({ text, url, servings }) {
+export async function importRecipeInBrowser({ text, url, images, servings }) {
   const apiKey = getStoredApiKey();
   if (!apiKey) {
     throw new Error("Add your Anthropic API key in Settings (⚙️) first.");
   }
-  const source = text || (await fetchRecipePageInBrowser(url));
+  const fromPhotos = images?.length > 0;
+  const source = fromPhotos ? text : text || (await fetchRecipePageInBrowser(url));
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  // Photos go in as image blocks before the instructions, so Claude reads the
+  // card first and then knows what to do with it.
+  const content = [
+    ...(images ?? []).map((img) => ({
+      type: "image",
+      source: { type: "base64", media_type: img.media_type, data: img.data },
+    })),
+    { type: "text", text: buildImportPrompt({ text: source, url, servings, fromPhotos }) },
+  ];
 
   const response = await client.messages.parse({
     model: MODEL,
     max_tokens: 16000,
     system:
       "You extract recipes into structured data. Keep the source's actual quantities and steps — do not invent a different dish.",
-    messages: [{ role: "user", content: buildImportPrompt({ text: source, url, servings }) }],
+    messages: [{ role: "user", content }],
     output_config: { format: zodOutputFormat(ImportResponseSchema, "recipe") },
   });
 
@@ -319,7 +331,11 @@ export async function importRecipeInBrowser({ text, url, servings }) {
     recipe = parsed.data.recipe;
   }
   if (recipe.name === "NOT_A_RECIPE" || !recipe.ingredients?.length) {
-    throw new Error("That didn't look like a recipe — try pasting the recipe text instead.");
+    throw new Error(
+      fromPhotos
+        ? "Couldn't read a recipe in that photo. Try again with the card filling the frame, in good light and in focus."
+        : "That didn't look like a recipe — try pasting the recipe text instead."
+    );
   }
   return recipe;
 }

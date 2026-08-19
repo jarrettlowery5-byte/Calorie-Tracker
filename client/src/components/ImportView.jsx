@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { APPLIANCES, IS_LOCAL } from "../api";
 import { getStoredApiKey } from "../local/generate";
+import { prepareImage } from "../lib/image";
 import { money, useApp } from "../store";
 import Icon from "./Icon";
 
 const MODES = [
+  { id: "photo", label: "Take a photo", icon: "camera" },
   { id: "link", label: "From a link", icon: "link" },
   { id: "paste", label: "Paste text", icon: "book" },
   { id: "type", label: "Type it in", icon: "pencil" },
 ];
+
+const MAX_PHOTOS = 4;
 
 const CATEGORIES = [
   "Produce",
@@ -23,12 +27,15 @@ const CATEGORIES = [
 
 export default function ImportView() {
   const { importRecipe, settings, showToast, go, addToPlan } = useApp();
-  const [mode, setMode] = useState("link");
+  const [mode, setMode] = useState("photo");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
+  const [photos, setPhotos] = useState([]); // {media_type, data, preview}
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(null);
+  const cameraRef = useRef(null);
+  const libraryRef = useRef(null);
 
   const keyMissing = IS_LOCAL && !getStoredApiKey();
 
@@ -41,11 +48,24 @@ export default function ImportView() {
       setSaved(recipe);
       setUrl("");
       setText("");
+      setPhotos([]);
       showToast(`Saved "${recipe.name}"`);
     } catch (err) {
       setError(err.message || "That didn't work — try again.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const addPhotos = async (fileList) => {
+    const files = [...fileList].slice(0, MAX_PHOTOS - photos.length);
+    if (!files.length) return;
+    setError(null);
+    try {
+      const prepared = await Promise.all(files.map(prepareImage));
+      setPhotos((prev) => [...prev, ...prepared]);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -55,9 +75,9 @@ export default function ImportView() {
         <p className="eyebrow">Add a recipe</p>
         <h1 className="page-title mt-1">Bring your own recipes in.</h1>
         <p className="text-sm text-muted mt-1.5 leading-relaxed">
-          Paste a link, paste the text, or type it out. Appetite pulls out the
-          ingredients — with prices, so they flow into your grocery list and
-          budget — and the cooking steps for the Cook tab.
+          Snap a photo of a recipe card, paste a link, paste the text, or type it
+          out. Appetite pulls out the ingredients — with prices, so they flow into
+          your grocery list and budget — and the cooking steps for the Cook tab.
         </p>
       </header>
 
@@ -69,7 +89,9 @@ export default function ImportView() {
               setMode(m.id);
               setError(null);
             }}
-            className={`chip flex items-center gap-1.5 ${mode === m.id ? "chip-on" : "chip-off"}`}
+            className={`chip shrink-0 whitespace-nowrap flex items-center gap-1.5 ${
+              mode === m.id ? "chip-on" : "chip-off"
+            }`}
           >
             <Icon name={m.icon} className="w-4 h-4" />
             {m.label}
@@ -82,6 +104,96 @@ export default function ImportView() {
           Reading a recipe needs your Anthropic API key — add it under ⚙️ Settings.
           You can still use <strong className="text-ink">Type it in</strong> without one.
         </div>
+      )}
+
+      {mode === "photo" && (
+        <section className="card p-4">
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              addPhotos(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={libraryRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addPhotos(e.target.files);
+              e.target.value = "";
+            }}
+          />
+
+          {photos.length === 0 ? (
+            <button
+              onClick={() => cameraRef.current?.click()}
+              className="w-full rounded-2xl border-2 border-dashed border-hairline hover:border-herb/50 transition-colors py-10 grid place-items-center gap-2"
+            >
+              <span className="w-12 h-12 rounded-2xl bg-herb-soft text-herb grid place-items-center">
+                <Icon name="camera" className="w-6 h-6" />
+              </span>
+              <span className="font-semibold text-sm">Take a photo of the recipe</span>
+              <span className="text-xs text-muted">Recipe card, cookbook page, or handwritten note</span>
+            </button>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map((photo, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-hairline">
+                  <img src={photo.preview} alt={`Recipe photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-ink/70 text-paper grid place-items-center"
+                    aria-label={`Remove photo ${i + 1}`}
+                  >
+                    <Icon name="close" className="w-3.5 h-3.5" strokeWidth={2.4} />
+                  </button>
+                </div>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  onClick={() => cameraRef.current?.click()}
+                  className="aspect-square rounded-xl border-2 border-dashed border-hairline hover:border-herb/50 grid place-items-center text-muted"
+                  aria-label="Add another photo"
+                >
+                  <Icon name="plus" className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-3">
+            <button className="btn-ghost flex-1 text-xs" onClick={() => libraryRef.current?.click()}>
+              Choose from photos
+            </button>
+            {photos.length > 0 && (
+              <button className="btn-quiet text-xs" onClick={() => setPhotos([])}>
+                Clear
+              </button>
+            )}
+          </div>
+
+          <button
+            className="btn-primary w-full mt-3"
+            disabled={busy || keyMissing || photos.length === 0}
+            onClick={() => run({ images: photos.map(({ media_type, data }) => ({ media_type, data })) })}
+          >
+            {busy
+              ? "Reading the recipe…"
+              : `Import ${photos.length > 1 ? `${photos.length} photos` : "this recipe"}`}
+          </button>
+          <p className="text-xs text-muted mt-2 leading-relaxed">
+            Fill the frame with the card and keep it in focus. Long recipe? Add up to{" "}
+            {MAX_PHOTOS} photos — front and back, or several pages — and they'll be read
+            as one recipe.
+          </p>
+        </section>
       )}
 
       {mode === "link" && (
@@ -138,7 +250,97 @@ export default function ImportView() {
       {error && (
         <div className="card p-4 border-tomato/40 bg-tomato/[0.04]">
           <p className="text-sm text-tomato font-medium">{error}</p>
-          {mode === "link" && (
+          {mode === "photo" && (
+        <section className="card p-4">
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              addPhotos(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={libraryRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addPhotos(e.target.files);
+              e.target.value = "";
+            }}
+          />
+
+          {photos.length === 0 ? (
+            <button
+              onClick={() => cameraRef.current?.click()}
+              className="w-full rounded-2xl border-2 border-dashed border-hairline hover:border-herb/50 transition-colors py-10 grid place-items-center gap-2"
+            >
+              <span className="w-12 h-12 rounded-2xl bg-herb-soft text-herb grid place-items-center">
+                <Icon name="camera" className="w-6 h-6" />
+              </span>
+              <span className="font-semibold text-sm">Take a photo of the recipe</span>
+              <span className="text-xs text-muted">Recipe card, cookbook page, or handwritten note</span>
+            </button>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map((photo, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-hairline">
+                  <img src={photo.preview} alt={`Recipe photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-ink/70 text-paper grid place-items-center"
+                    aria-label={`Remove photo ${i + 1}`}
+                  >
+                    <Icon name="close" className="w-3.5 h-3.5" strokeWidth={2.4} />
+                  </button>
+                </div>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  onClick={() => cameraRef.current?.click()}
+                  className="aspect-square rounded-xl border-2 border-dashed border-hairline hover:border-herb/50 grid place-items-center text-muted"
+                  aria-label="Add another photo"
+                >
+                  <Icon name="plus" className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-3">
+            <button className="btn-ghost flex-1 text-xs" onClick={() => libraryRef.current?.click()}>
+              Choose from photos
+            </button>
+            {photos.length > 0 && (
+              <button className="btn-quiet text-xs" onClick={() => setPhotos([])}>
+                Clear
+              </button>
+            )}
+          </div>
+
+          <button
+            className="btn-primary w-full mt-3"
+            disabled={busy || keyMissing || photos.length === 0}
+            onClick={() => run({ images: photos.map(({ media_type, data }) => ({ media_type, data })) })}
+          >
+            {busy
+              ? "Reading the recipe…"
+              : `Import ${photos.length > 1 ? `${photos.length} photos` : "this recipe"}`}
+          </button>
+          <p className="text-xs text-muted mt-2 leading-relaxed">
+            Fill the frame with the card and keep it in focus. Long recipe? Add up to{" "}
+            {MAX_PHOTOS} photos — front and back, or several pages — and they'll be read
+            as one recipe.
+          </p>
+        </section>
+      )}
+
+      {mode === "link" && (
             <button className="btn-ghost mt-3" onClick={() => setMode("paste")}>
               Paste the text instead →
             </button>
