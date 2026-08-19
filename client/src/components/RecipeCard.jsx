@@ -1,10 +1,18 @@
 import { useMemo, useState } from "react";
 import { money, useApp } from "../store";
 
+// AI-generated illustrative photo of the dish (free service, no key needed).
+// The seed keeps the same recipe showing the same photo every time.
+const dishImageUrl = (recipe) =>
+  `https://image.pollinations.ai/prompt/${encodeURIComponent(
+    `professional food photography of ${recipe.name}, ${recipe.cuisine} dish, plated, appetizing, natural light`
+  )}?width=768&height=432&nologo=true&seed=${recipe.id}`;
+
 export default function RecipeCard({ recipe, groceryNames }) {
   const { plan, addToPlan, toggleFavorite, rateRecipe, saveNotes, deleteRecipe } = useApp();
   const [expanded, setExpanded] = useState(false);
   const [notesDraft, setNotesDraft] = useState(recipe.notes);
+  const [imgFailed, setImgFailed] = useState(false);
 
   const cost = recipe.ingredients.reduce((sum, i) => sum + (i.estCost || 0), 0);
   const inPlan = plan.some((p) => p.recipeId === recipe.id);
@@ -19,6 +27,15 @@ export default function RecipeCard({ recipe, groceryNames }) {
 
   return (
     <article className="card overflow-hidden">
+      {!imgFailed && (
+        <img
+          src={dishImageUrl(recipe)}
+          alt={`AI-generated photo of ${recipe.name}`}
+          className="w-full h-44 object-cover bg-herb-soft"
+          loading="lazy"
+          onError={() => setImgFailed(true)}
+        />
+      )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

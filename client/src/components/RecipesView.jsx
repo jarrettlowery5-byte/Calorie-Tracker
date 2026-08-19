@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { MEAL_TYPES, APPLIANCES } from "../api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MEAL_TYPES, APPLIANCES, IS_LOCAL } from "../api";
+import { getStoredApiKey } from "../local/generate";
 import { useApp } from "../store";
 import RecipeCard from "./RecipeCard";
 
@@ -10,6 +11,15 @@ export default function RecipesView() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+
+  // Endless feed: reaching the end of the list asks for more suggestions.
+  // Recipes loaded this way keep their place at the bottom (feedIds) so the
+  // list doesn't jump while you scroll.
+  const [feedIds, setFeedIds] = useState([]);
+  const [feedState, setFeedState] = useState("idle"); // idle | loading | error
+  const [armed, setArmed] = useState(false); // only auto-load after the user scrolls
+  const loadingRef = useRef(false);
+  const sentinelRef = useRef(null);
 
   const toggle = (setter) => (value) =>
     setter((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
@@ -23,8 +33,10 @@ export default function RecipesView() {
     [grocery]
   );
 
+  const feedIdSet = useMemo(() => new Set(feedIds), [feedIds]);
+
   const filtered = useMemo(() => {
-    let list = recipes;
+    let list = recipes.filter((r) => !feedIdSet.has(r.id));
     if (favoritesOnly) list = list.filter((r) => r.isFavorite);
     if (mealTypes.length) {
       list = list.filter((r) =>
@@ -37,7 +49,55 @@ export default function RecipesView() {
       );
     }
     return list;
-  }, [recipes, mealTypes, appliances, favoritesOnly]);
+  }, [recipes, mealTypes, appliances, favoritesOnly, feedIdSet]);
+
+  const feedRecipes = useMemo(
+    () => feedIds.map((id) => recipes.find((r) => r.id === id)).filter(Boolean),
+    [feedIds, recipes]
+  );
+
+  const keyMissing = IS_LOCAL && !getStoredApiKey();
+
+  const loadMore = async () => {
+    if (loadingRef.current || keyMissing) return;
+    loadingRef.current = true;
+    setFeedState("loading");
+    try {
+      const created = await generateRecipes({
+        mealTypes,
+        appliances,
+        servings: settings.servings,
+        remainingBudget: Math.max(0, grocery?.totals?.remaining ?? settings.budget),
+        exclusions: settings.dietaryExclusions,
+      });
+      setFeedIds((prev) => [...prev, ...created.map((r) => r.id)]);
+      setFeedState("idle");
+    } catch {
+      setFeedState("error"); // stop auto-loading until the user taps Try again
+    } finally {
+      loadingRef.current = false;
+    }
+  };
+
+  // Arm the endless feed on the first scroll so it never fires on page load.
+  useEffect(() => {
+    const arm = () => setArmed(true);
+    window.addEventListener("scroll", arm, { once: true, passive: true });
+    return () => window.removeEventListener("scroll", arm);
+  }, []);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !armed || favoritesOnly || keyMissing || feedState === "error") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) loadMore();
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
 
   const suggest = async () => {
     setGenerating(true);
@@ -113,12 +173,37 @@ export default function RecipesView() {
         {filtered.map((recipe) => (
           <RecipeCard key={recipe.id} recipe={recipe} groceryNames={groceryNames} />
         ))}
-        {filtered.length === 0 && (
+        {filtered.length === 0 && feedRecipes.length === 0 && (
           <p className="text-center text-muted py-8 text-sm">
             No recipes match these filters yet — try Suggest, or loosen a filter.
           </p>
         )}
+        {feedRecipes.map((recipe) => (
+          <RecipeCard key={recipe.id} recipe={recipe} groceryNames={groceryNames} />
+        ))}
       </div>
+
+      {!favoritesOnly && (
+        <div ref={sentinelRef} className="py-6 text-center text-sm text-muted">
+          {feedState === "loading" && (
+            <p className="animate-pulse">Cooking up more ideas…</p>
+          )}
+          {feedState === "error" && (
+            <div>
+              <p className="text-tomato mb-2">Couldn't load more right now.</p>
+              <button className="btn-ghost" onClick={() => { setFeedState("idle"); loadMore(); }}>
+                Try again
+              </button>
+            </div>
+          )}
+          {feedState === "idle" && keyMissing && (
+            <p>Add your Anthropic API key in ⚙️ Settings to get endless suggestions here.</p>
+          )}
+          {feedState === "idle" && !keyMissing && (
+            <p>Keep scrolling for more ideas ↓</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
