@@ -8,6 +8,22 @@ budget by the sticky meter at the top.
 
 **Stack:** React + Vite + Tailwind CSS · Node + Express · SQLite (better-sqlite3) · Anthropic API (Claude)
 
+## Two ways to run it
+
+1. **Phone / GitHub Pages (no computer needed after setup):** the workflow in
+   `.github/workflows/pages.yml` automatically builds and publishes a
+   phone-friendly version to GitHub Pages at
+   `https://<your-username>.github.io/Calorie-Tracker/`. In this version all
+   data (plan, prices, pantry) is stored in the phone's browser storage, and
+   the ✨ Suggest button uses an Anthropic API key you paste into the app's
+   Settings (⚙️) — the key is kept only on your device and sent only to
+   Anthropic. Enable it once: repo **Settings → Pages → Source: GitHub
+   Actions** (the workflow can usually enable this itself on its first run).
+   Open the link on your phone and use "Add to Home Screen" for an app icon.
+
+2. **Full version on a computer (server + database):** follow the setup below.
+   Data lives in SQLite and the API key stays private on the backend.
+
 ## Setup
 
 ### 1. Get an Anthropic API key

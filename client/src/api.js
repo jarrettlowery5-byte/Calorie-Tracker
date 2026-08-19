@@ -1,3 +1,10 @@
+import { localApi } from "./local/localdb";
+
+// Build-time switch: VITE_DATA_MODE=local (the GitHub Pages build) stores all
+// data in the browser and calls Anthropic directly with a user-supplied key;
+// otherwise the app talks to the Express backend at /api/*.
+export const IS_LOCAL = import.meta.env.VITE_DATA_MODE === "local";
+
 async function request(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     headers: { "content-type": "application/json" },
@@ -11,7 +18,7 @@ async function request(path, options = {}) {
   return data;
 }
 
-export const api = {
+const remoteApi = {
   health: () => request("/health"),
 
   getSettings: () => request("/settings"),
@@ -41,6 +48,8 @@ export const api = {
   savePrice: (ingredientName, store, price) =>
     request("/prices", { method: "PUT", body: { ingredientName, store, price } }),
 };
+
+export const api = IS_LOCAL ? localApi : remoteApi;
 
 export const STORES = ["Walmart", "Aldi", "Trader Joe's", "Publix", "Kroger"];
 

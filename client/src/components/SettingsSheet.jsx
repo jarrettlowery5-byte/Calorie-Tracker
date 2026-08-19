@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { STORES, EXCLUSION_PRESETS } from "../api";
+import { STORES, EXCLUSION_PRESETS, IS_LOCAL } from "../api";
+import { getStoredApiKey, setStoredApiKey } from "../local/generate";
 import { useApp } from "../store";
 
 export default function SettingsSheet({ onClose }) {
@@ -9,6 +10,7 @@ export default function SettingsSheet({ onClose }) {
   const [defaultStore, setDefaultStore] = useState(settings.defaultStore);
   const [exclusions, setExclusions] = useState(settings.dietaryExclusions);
   const [freeText, setFreeText] = useState("");
+  const [apiKey, setApiKey] = useState(() => (IS_LOCAL ? getStoredApiKey() : ""));
   const [saving, setSaving] = useState(false);
 
   const toggleExclusion = (ex) =>
@@ -25,6 +27,7 @@ export default function SettingsSheet({ onClose }) {
   const save = async () => {
     setSaving(true);
     try {
+      if (IS_LOCAL) setStoredApiKey(apiKey);
       await updateSettings({
         budget: Math.max(0, parseFloat(budget) || 0),
         servings: Math.max(1, parseInt(servings, 10) || 1),
@@ -105,6 +108,24 @@ export default function SettingsSheet({ onClose }) {
             <button className="btn-ghost" onClick={addFreeText}>Add</button>
           </div>
         </div>
+
+        {IS_LOCAL && (
+          <label className="block mb-4">
+            <span className="text-sm text-muted font-medium">Anthropic API key (for ✨ Suggest)</span>
+            <input
+              type="password"
+              autoComplete="off"
+              className="mt-1 w-full rounded-xl border border-hairline bg-white px-3 py-2.5 text-sm"
+              placeholder="sk-ant-…"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+            <span className="block text-[11px] text-muted mt-1">
+              Stored only on this device and sent only to Anthropic. Get a key at
+              console.anthropic.com — everything except Suggest works without one.
+            </span>
+          </label>
+        )}
 
         <div className="flex gap-2">
           <button className="btn-ghost flex-1" onClick={onClose}>Cancel</button>
