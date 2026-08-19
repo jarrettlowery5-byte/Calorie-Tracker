@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# environment — never commit the API key
+.env
+
+# database files
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-wal
+server/data/*.db-shm
+
+# builds
+client/dist/
+
+# misc
+.DS_Store
+*.log

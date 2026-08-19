@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-hairline shadow-sm;
+  }
+  .chip {
+    @apply px-3 py-1.5 rounded-full border text-sm font-medium transition-colors select-none cursor-pointer;
+  }
+  .chip-off {
+    @apply bg-white border-hairline text-muted hover:border-herb/40;
+  }
+  .chip-on {
+    @apply bg-herb-soft border-herb text-herb;
+  }
+  .btn {
+    @apply rounded-xl px-4 py-2.5 font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-herb text-white hover:bg-herb/90;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent border border-hairline text-ink hover:bg-herb-soft;
+  }
+}
