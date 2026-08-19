@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../store";
+import { PANTRY_STAPLES } from "../data/pantry-staples";
+
+const normalize = (name) => name.trim().toLowerCase().replace(/\s+/g, " ");
 
 const CATEGORIES = [
   "Produce",
@@ -16,11 +19,25 @@ export default function PantryView() {
   const { pantry, addPantryItem, togglePantryHave, deletePantryItem } = useApp();
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Pantry");
+  const [openGroup, setOpenGroup] = useState(PANTRY_STAPLES[0].group);
+
+  const pantryByName = useMemo(() => {
+    const map = new Map();
+    for (const item of pantry) map.set(normalize(item.name), item);
+    return map;
+  }, [pantry]);
 
   const add = async () => {
     if (!name.trim()) return;
     await addPantryItem({ name: name.trim(), category, have: true });
     setName("");
+  };
+
+  // Tap a staple to check it into the pantry as owned; tap again to remove it.
+  const toggleStaple = async (staple) => {
+    const existing = pantryByName.get(normalize(staple.name));
+    if (existing) await deletePantryItem(existing.id);
+    else await addPantryItem({ name: staple.name, category: staple.category, have: true });
   };
 
   const owned = pantry.filter((p) => p.have);
@@ -52,6 +69,53 @@ export default function PantryView() {
           </select>
         </div>
         <button className="btn-primary w-full mt-2" onClick={add}>Add to pantry</button>
+      </section>
+
+      <section className="card p-4">
+        <h2 className="font-display text-lg font-semibold mb-1">Quick add staples</h2>
+        <p className="text-xs text-muted mb-2">
+          Tap what you already have — tap again to remove it.
+        </p>
+        <div className="divide-y divide-hairline">
+          {PANTRY_STAPLES.map(({ group, items }) => {
+            const ownedCount = items.filter((i) => pantryByName.has(normalize(i.name))).length;
+            const open = openGroup === group;
+            return (
+              <div key={group} className="py-2">
+                <button
+                  className="w-full flex items-center justify-between text-left"
+                  onClick={() => setOpenGroup(open ? null : group)}
+                >
+                  <span className="text-sm font-semibold">
+                    {group}
+                    {ownedCount > 0 && (
+                      <span className="ml-2 text-[11px] font-medium bg-herb-soft text-herb px-1.5 py-0.5 rounded-full">
+                        {ownedCount} ✓
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-muted text-sm">{open ? "▾" : "▸"}</span>
+                </button>
+                {open && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {items.map((staple) => {
+                      const owned = pantryByName.has(normalize(staple.name));
+                      return (
+                        <button
+                          key={staple.name}
+                          onClick={() => toggleStaple(staple)}
+                          className={`chip ${owned ? "chip-on" : "chip-off"}`}
+                        >
+                          {owned ? "✓ " : ""}{staple.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {[
