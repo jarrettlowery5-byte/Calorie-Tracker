@@ -1,9 +1,13 @@
 // Network-first app-shell cache so the tracker opens offline.
-const CACHE = 'calorie-tracker-v2';
+const CACHE = 'fuel-v3';
 const SHELL = ['./', './index.html', './styles.css', './store.js', './app.js', './manifest.json'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
+  e.waitUntil(
+    caches.open(CACHE).then((c) =>
+      c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))
+    )
+  );
   self.skipWaiting();
 });
 

@@ -1,4 +1,4 @@
-# Calorie Tracker
+# Fuel
 
 A personal, local-first calorie and macro tracking web app. Mobile-first UI, no login,
 all data stored in a single SQLite file on your machine.

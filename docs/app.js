@@ -1,6 +1,9 @@
-/* Calorie & macro tracker — vanilla JS SPA */
+/* Fuel — calorie & macro tracker, vanilla JS SPA */
 (() => {
   'use strict';
+
+  // Bumped with each deploy; shown in Settings so it's obvious which copy a device has.
+  const BUILD = 3;
 
   // ---------- utils ----------
   const $ = (sel, el = document) => el.querySelector(sel);
@@ -809,6 +812,7 @@
         el('button', { class: 'btn', type: 'button', onclick: () => $('#import-file').click() }, '⬆ Import backup')),
       el('p', { class: 'hint', style: 'margin-top:10px' },
         'All data lives in this browser. Export a backup now and then — clearing this site’s browsing data would erase your log.'),
+      el('p', { class: 'hint', style: 'margin-top:14px;text-align:center' }, `Fuel · build ${BUILD}`),
     );
 
     form.onsubmit = async (e) => {
