@@ -45,8 +45,9 @@ export default function GeneratorTab({ board, setBoard }) {
 
   const withStatus = async (fn, okText) => {
     try {
-      await fn();
-      setStatus({ tone: 'ok', text: okText });
+      // A viewer who declines the save prompt has not hit an error.
+      const outcome = await fn();
+      setStatus(outcome === 'declined' ? null : { tone: 'ok', text: okText });
     } catch (err) {
       setStatus({ tone: 'error', text: err.message });
     }

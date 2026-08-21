@@ -17,6 +17,53 @@ function serialize(svgEl) {
   return new XMLSerializer().serializeToString(clone);
 }
 
+/**
+ * Hand a generated file to the viewer.
+ *
+ * When the page runs as a published Artifact, the sandbox blocks a page from
+ * starting its own download, so the file has to go through the host's
+ * `downloads` capability, which asks the viewer to confirm. Running locally
+ * there is no such host, and a plain anchor download works.
+ *
+ * Returns 'saved' or 'declined' so callers can stay quiet when the viewer
+ * simply says no.
+ */
+async function offerFile(filename, blob) {
+  const host = typeof window !== 'undefined' ? window.claude : undefined;
+  const downloads = typeof host?.use === 'function' ? await host.use('downloads') : null;
+
+  if (downloads) {
+    try {
+      await downloads.save({ filename, data: blob });
+      return 'saved';
+    } catch (err) {
+      // The viewer said no, or let the prompt lapse -- not an error worth showing.
+      if (err?.code === 'declined') return 'declined';
+      if (err?.code === 'extension_not_enabled' || err?.code === 'rejected_extension') {
+        throw new Error(`${filename.split('.').pop().toUpperCase()} downloads are not enabled here — use Download PNG instead.`);
+      }
+      if (err?.code === 'rate_limited') {
+        throw new Error('A save prompt is already open. Finish that one first.');
+      }
+      if (err?.code === 'too_large') {
+        throw new Error('That image is too large to save (16 MB limit).');
+      }
+      throw new Error(err?.message || 'The download could not be started.');
+    }
+  }
+
+  // Local fallback: a normal browser download.
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return 'saved';
+}
+
 /** Render the SVG to a PNG blob at `scale` times its natural size. */
 export function svgToPngBlob(svgEl, scale = 2) {
   return new Promise((resolve, reject) => {
@@ -47,35 +94,29 @@ export function svgToPngBlob(svgEl, scale = 2) {
 
 /** Download the board as a PNG file. */
 export async function downloadPng(svgEl, filename) {
-  const blob = await svgToPngBlob(svgEl, 2);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return offerFile(filename, await svgToPngBlob(svgEl, 2));
 }
 
-/** Copy the board to the clipboard as a PNG. Not supported in every browser. */
+/**
+ * Copy the board to the clipboard as a PNG.
+ * Sandboxed frames and some browsers block image clipboard writes, so this
+ * points at the download instead of failing opaquely.
+ */
 export async function copyPngToClipboard(svgEl) {
-  if (!navigator.clipboard || typeof window.ClipboardItem === 'undefined') {
-    throw new Error('This browser cannot copy images to the clipboard — use Download PNG instead.');
+  if (!navigator.clipboard?.write || typeof window.ClipboardItem === 'undefined') {
+    throw new Error('Copying images is not available here — use Download PNG instead.');
   }
   const blob = await svgToPngBlob(svgEl, 2);
-  await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
+  try {
+    await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
+  } catch {
+    throw new Error('This page is not allowed to write to the clipboard — use Download PNG instead.');
+  }
+  return 'saved';
 }
 
 /** Download the raw SVG, which stays crisp at any size. */
-export function downloadSvg(svgEl, filename) {
+export async function downloadSvg(svgEl, filename) {
   const blob = new Blob([serialize(svgEl)], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return offerFile(filename, blob);
 }
