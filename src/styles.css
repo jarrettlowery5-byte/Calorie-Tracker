@@ -91,7 +91,7 @@ h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: 
   padding: 16px;
   box-shadow: var(--shadow);
 }
-.controls { position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow-y: auto; }
+.controls { position: sticky; top: 104px; max-height: calc(100vh - 124px); overflow-y: auto; }
 @media (max-width: 1000px) { .controls { position: static; max-height: none; } }
 
 .control-group { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
@@ -187,7 +187,7 @@ table.stats td:first-child { display: flex; align-items: center; gap: 8px; }
 /* ---------- Play tab ---------- */
 .play-layout { grid-template-columns: minmax(0, 1fr) 380px; }
 .play-layout .board-area { order: 1; }
-.play-layout .play-side { order: 2; position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow-y: auto; }
+.play-layout .play-side { order: 2; position: sticky; top: 104px; max-height: calc(100vh - 124px); overflow-y: auto; }
 @media (max-width: 1100px) {
   .play-layout { grid-template-columns: 1fr; }
   .play-layout .play-side { position: static; max-height: none; }
