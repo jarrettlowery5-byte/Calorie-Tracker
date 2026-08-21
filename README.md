@@ -20,7 +20,8 @@ npm test         # rules-engine unit tests
 | --- | --- | --- | --- |
 | Original (3–4 players) | 19 (rows of 3-4-5-4-3) | 18 | 9 |
 | Original + 5–6 player extension | 30 (rows of 3-4-5-6-5-4-3) | 28 | 11 |
-| Seafarers — *Heading for New Shores* | 19 mainland + 8 island + 18 sea | 26 | 9 |
+| Seafarers — *New Shores* (3–4) | 19 mainland + 8 island + 18 sea | 26 | 9 |
+| Seafarers — *New Shores* (5–6) | 30 mainland + 10 island + 22 sea | 38 | 11 |
 
 Constraint toggles: no red numbers touching, no duplicate numbers touching, no
 same-resource clustering, pip balancing, desert in center, randomize harbors.
@@ -40,13 +41,33 @@ Every board is reproducible from its seed code, and can be exported as PNG
 - The 5–6 player extension board is the official elongated hexagon of seven rows,
   3-4-5-6-5-4-3 = 30 land hexes, with 11 harbors (the extension adds one 3:1 and
   one 2:1 wool frame piece to the base game's 4× 3:1 and 5× 2:1).
-- *Heading for New Shores* builds the mainland exactly like the base game and
-  uses the box's eight extra terrain hexes — 2 gold fields, 2 mountains, and one
-  each of fields, hills, pasture and forest — as four two-hex discovery islands,
-  each one sea hex off the coast, carrying the eight extra number tokens.
-  One adaptation: we lay a complete one-hex sea ring (18 tiles) rather than the
-  physical frame's 15, which keeps the map symmetric on screen while preserving
-  the one-sea-hex separation that matters.
+- *Heading for New Shores (3–4)* builds the mainland exactly like the base game
+  and uses the box's eight extra terrain hexes — 2 gold fields, 2 mountains, and
+  one each of fields, hills, pasture and forest — as four two-hex discovery
+  islands, each one sea hex off the coast, carrying the eight extra number
+  tokens. One adaptation: we lay a complete one-hex sea ring (18 tiles) rather
+  than the physical frame's 15, which keeps the map symmetric on screen while
+  preserving the one-sea-hex separation that matters.
+
+- *Heading for New Shores (5–6)* is **partly derived** and is labelled as such
+  in the app. It needs four boxes on the table (base, Catan 5–6 extension,
+  Seafarers, Seafarers 5–6 extension), and is built from their combined
+  component pools:
+
+  | Element | Status |
+  | --- | --- |
+  | 30-hex mainland, 3-4-5-6-5-4-3 | **Exact** — base + Catan 5–6 land is precisely 6/5/6/6/5 + 2 desert |
+  | 28 mainland number tokens | **Exact** — base + Catan 5–6 token sets |
+  | 22-tile ocean ring | **Exact** — Seafarers (15) + Seafarers 5–6 (7) sea tiles is exactly a complete one-hex ring around that mainland |
+  | 10 island hexes with 4 gold fields | **Derived** — the Seafarers land pools minus the third desert, split into five two-hex islands |
+  | 2 of the 10 island tokens | **Derived** — the Seafarers box supplies 8; two mid-value tokens are added, deliberately no 6 or 8 |
+  | 15 VP (5 players) / 16 (6) | **Derived** — extrapolated from 13/14 at 3–4 players |
+
+  The exact sea-tile match is the main reason to trust the overall shape. Every
+  authoritative rulebook for that extension was unreachable from this
+  environment, so the derived rows are inference from component lists rather
+  than a transcription. They are all in one place — `src/catan/scenarios.js` —
+  if you have the box and want to correct them.
 
 ## Rules engine (`src/engine`)
 

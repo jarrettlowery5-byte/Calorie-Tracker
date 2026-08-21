@@ -157,9 +157,13 @@ export default function GeneratorTab({ board, setBoard }) {
 
         {board.scenario && (
           <section className="panel scenario-note">
-            <h3>{board.scenario.name}</h3>
+            <h3>
+              {board.scenario.name}
+              {board.scenario.derived && <span className="derived-tag">derived layout</span>}
+            </h3>
             <p>{board.scenario.summary}</p>
             <ul>{board.scenario.specialRules.map((r) => <li key={r}>{r}</li>)}</ul>
+            {board.scenario.note && <p className="scenario-caveat">{board.scenario.note}</p>}
           </section>
         )}
 

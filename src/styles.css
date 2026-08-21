@@ -277,3 +277,28 @@ table.stats td:first-child { display: flex; align-items: center; gap: 8px; }
 .log-entry.award .log-text { color: var(--accent); font-weight: 600; }
 .log-entry.roll .log-text { color: var(--text); font-weight: 600; }
 .reveal-note { margin: 6px 0 0; font-size: 11.5px; color: var(--accent); }
+
+/* Marks a scenario whose layout is inferred from component lists rather than
+   transcribed from a rulebook, so the distinction is visible on screen. */
+.derived-tag {
+  margin-left: 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--warn);
+  background: rgba(226, 177, 60, 0.14);
+  border: 1px solid rgba(226, 177, 60, 0.35);
+  border-radius: 4px;
+  padding: 2px 7px;
+  vertical-align: middle;
+}
+.scenario-caveat {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--warn);
+  background: rgba(226, 177, 60, 0.08);
+  border-radius: 0 8px 8px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}

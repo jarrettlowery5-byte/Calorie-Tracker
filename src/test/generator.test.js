@@ -38,11 +38,61 @@ describe('board geometry', () => {
       .toEqual([3, 4, 5, 6, 5, 4, 3]);
   });
 
-  it('keeps every Seafarers island one sea hex off the mainland', () => {
-    const board = generateBoard({ modeId: 'seafarers', seed: 1, constraints: ALL });
-    const mainland = new Set(board.hexes.filter((h) => h.region === 'main').map((h) => h.id));
-    for (const hex of board.hexes.filter((h) => h.region === 'islands')) {
-      expect(neighboursOf(board, hex).some((id) => mainland.has(id))).toBe(false);
+  it.each(['new-shores', 'new-shores-56'])(
+    'keeps every %s island one sea hex off the mainland', (scenarioId) => {
+      const board = generateBoard({ modeId: 'seafarers', scenarioId, seed: 1, constraints: ALL });
+      const mainland = new Set(board.hexes.filter((h) => h.region === 'main').map((h) => h.id));
+      const sea = new Set(board.hexes.filter((h) => h.type === 'sea').map((h) => h.id));
+      const islands = board.hexes.filter((h) => h.region === 'islands');
+      expect(islands.length).toBeGreaterThan(0);
+      for (const hex of islands) {
+        const neighbours = neighboursOf(board, hex);
+        // Never touching the mainland...
+        expect(neighbours.some((id) => mainland.has(id))).toBe(false);
+        // ...but always reachable across open water.
+        expect(neighbours.some((id) => sea.has(id))).toBe(true);
+      }
+    },
+  );
+
+  it('gives the 5-6 Seafarers board the full 30-hex mainland and a 22-tile ocean ring', () => {
+    const board = generateBoard({ modeId: 'seafarers', scenarioId: 'new-shores-56', seed: 1, constraints: ALL });
+    const count = (region) => board.hexes.filter((h) => h.region === region).length;
+    // These three follow exactly from the boxes' component pools.
+    expect(count('main')).toBe(30);
+    expect(count('sea')).toBe(22);
+    expect(count('islands')).toBe(10);
+    // The mainland is the same 3-4-5-6-5-4-3 shape as the 5-6 player board.
+    const rows = {};
+    for (const h of board.hexes.filter((x) => x.region === 'main')) rows[h.r] = (rows[h.r] || 0) + 1;
+    expect(Object.keys(rows).map(Number).sort((a, b) => a - b).map((r) => rows[r]))
+      .toEqual([3, 4, 5, 6, 5, 4, 3]);
+  });
+
+  it('splits the 5-6 Seafarers islands into five adjacent two-hex pairs', () => {
+    const board = generateBoard({ modeId: 'seafarers', scenarioId: 'new-shores-56', seed: 4, constraints: ALL });
+    const groups = {};
+    for (const h of board.hexes.filter((x) => x.region === 'islands')) (groups[h.island] ||= []).push(h);
+    expect(Object.keys(groups)).toHaveLength(5);
+    for (const pair of Object.values(groups)) {
+      expect(pair).toHaveLength(2);
+      expect(neighborIds(pair[0].q, pair[0].r)).toContain(pair[1].id);
+    }
+  });
+
+  it('puts four gold fields on the 5-6 Seafarers board and two on the 3-4', () => {
+    for (let seed = 1; seed <= 15; seed++) {
+      expect(tallyTerrain(generateBoard({ modeId: 'seafarers', scenarioId: 'new-shores', seed, constraints: ALL })).gold).toBe(2);
+      expect(tallyTerrain(generateBoard({ modeId: 'seafarers', scenarioId: 'new-shores-56', seed, constraints: ALL })).gold).toBe(4);
+    }
+  });
+
+  it('never puts a number token on open water', () => {
+    for (const scenarioId of ['new-shores', 'new-shores-56']) {
+      for (let seed = 1; seed <= 10; seed++) {
+        const board = generateBoard({ modeId: 'seafarers', scenarioId, seed, constraints: ALL });
+        expect(board.hexes.filter((h) => h.type === 'sea').every((h) => h.number === null)).toBe(true);
+      }
     }
   });
 });
@@ -85,6 +135,7 @@ describe('terrain and token bags', () => {
 
 describe('constraints', () => {
   const modes = ['original', 'extension', 'seafarers'];
+  // Seafarers sweeps below run the default 3-4 scenario; the 5-6 one is swept separately.
 
   it.each(modes)('never puts two red numbers together on %s', (modeId) => {
     for (let seed = 1; seed <= 40; seed++) {
@@ -152,6 +203,27 @@ describe('constraints', () => {
     expect(board.hexes.filter((h) => h.number != null)).toHaveLength(18);
     expect(board.constraints.relaxed).toEqual([]);
   });
+
+  it.each(['new-shores', 'new-shores-56'])(
+    'satisfies red/duplicate rules across %s boards', (scenarioId) => {
+      for (let seed = 1; seed <= 20; seed++) {
+        const board = generateBoard({ modeId: 'seafarers', scenarioId, seed, constraints: ALL });
+        const byId = new Map(board.hexes.map((h) => [h.id, h]));
+        const sat = new Set(board.constraints.satisfied);
+        for (const hex of board.hexes) {
+          if (hex.number == null) continue;
+          for (const id of neighboursOf(board, hex)) {
+            const other = byId.get(id);
+            if (other.number == null) continue;
+            if (sat.has('noRedTouching')) {
+              expect(isRedNumber(hex.number) && isRedNumber(other.number)).toBe(false);
+            }
+            if (sat.has('noDuplicateTouching')) expect(other.number).not.toBe(hex.number);
+          }
+        }
+      }
+    },
+  );
 
   it('satisfies the whole default set on the great majority of seeds', () => {
     let relaxed = 0;
