@@ -302,3 +302,42 @@ table.stats td:first-child { display: flex; align-items: center; gap: 8px; }
   font-size: 12.5px;
   color: var(--muted);
 }
+
+/* ---------- Installed-app (standalone) support ---------- */
+/* With viewport-fit=cover and a translucent iOS status bar, the page paints
+   edge to edge -- so the chrome has to keep clear of the notch and the home
+   indicator itself. These are no-ops in a normal browser tab. */
+.app-header {
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+}
+.layout {
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+  padding-bottom: max(48px, env(safe-area-inset-bottom));
+}
+
+/* Touch targets and comfortable spacing on a phone. */
+@media (max-width: 700px) {
+  .app-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .tabs { width: 100%; }
+  .tab { flex: 1; text-align: center; }
+  .layout { padding-top: 14px; gap: 14px; }
+  .btn { padding: 11px 14px; }
+  .btn.tiny { padding: 9px 8px; }
+  .board-svg { max-height: 58vh; }
+  .trade-grid { grid-template-columns: repeat(3, 1fr); }
+  /* Stop iOS zooming the page when a text field is focused. */
+  select, input[type='text'], input:not([type]), .seed-input { font-size: 16px; }
+}
+
+/* Rule out motion for anyone who has asked for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

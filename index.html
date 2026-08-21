@@ -2,9 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Generate Catan-style board maps with constraint-based randomisation, and play against heuristic AI opponents." />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 29 9.5v15L16 32 3 24.5v-15z' fill='%23e8a33d'/%3E%3Ccircle cx='16' cy='16.5' r='6.5' fill='%23f6f1e4'/%3E%3Ctext x='16' y='20' font-family='Georgia,serif' font-size='9' font-weight='700' text-anchor='middle' fill='%23c22a1f'%3E8%3C/text%3E%3C/svg%3E" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0f1720" />
+    <!-- iOS does not read the manifest for home-screen installs; these do the job. -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Map Forge" />
     <title>Catan Map Forge</title>
   </head>
   <body>

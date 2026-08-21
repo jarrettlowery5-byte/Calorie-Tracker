@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="sea" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#3d87c4"/>
+      <stop offset="100%" stop-color="#16405f"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sea)"/>
+  <!-- Pointy-top hex, centred, sized to sit inside a maskable safe zone. -->
+  <path d="M256 92 L397 173 L397 339 L256 420 L115 339 L115 173 Z" fill="#e8a33d" stroke="#8d5f14" stroke-width="10" stroke-linejoin="round"/>
+  <!-- Number token -->
+  <circle cx="256" cy="256" r="92" fill="#f6f1e4" stroke="#b9ad91" stroke-width="9"/>
+  <text x="256" y="243" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, 'Times New Roman', serif" font-size="106" font-weight="700" fill="#c22a1f">8</text>
+  <!-- Five pips: an 8 is a red number -->
+  <g fill="#c22a1f">
+    <circle cx="200" cy="311" r="8"/>
+    <circle cx="228" cy="311" r="8"/>
+    <circle cx="256" cy="311" r="8"/>
+    <circle cx="284" cy="311" r="8"/>
+    <circle cx="312" cy="311" r="8"/>
+  </g>
+</svg>

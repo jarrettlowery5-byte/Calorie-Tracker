@@ -7,7 +7,45 @@ the board rendered as hand-built SVG hexes.
 npm install
 npm run dev      # http://localhost:5173
 npm test         # rules-engine unit tests
+npm run build    # production build + service worker
+npm run preview  # serve the production build locally
 ```
+
+## Install it on a phone
+
+The app is a PWA: fully static, self-contained, and precached by a service
+worker, so once installed it launches from the home screen with its own icon,
+no browser chrome, and **works with no network at all**.
+
+Deploy it (see below), open the URL on the phone, then:
+
+- **iOS (Safari):** Share → *Add to Home Screen*. Safari does not read the web
+  manifest, so `apple-touch-icon.png` and the `apple-mobile-web-app-*` meta tags
+  in `index.html` are what give it a proper icon, title and standalone chrome.
+- **Android (Chrome):** the *Install app* prompt, or menu → *Add to Home screen*.
+
+### Deploying to GitHub Pages
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds, tests and
+publishes on every push. It needs one manual setup step:
+
+> Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**
+
+The site then serves from `https://<owner>.github.io/<repo>/`. The workflow
+passes `BASE_PATH=/<repo>/` so asset URLs, the manifest, the service worker
+scope and the precache list all resolve under that subpath — verified by
+serving the build from a subpath and reloading with the server shut down.
+
+Note: GitHub Pages on a **private** repository requires a paid GitHub plan. If
+the repo is private on the free plan, either make it public or deploy the `dist`
+folder to any static host (Netlify, Cloudflare Pages, Vercel) — it is plain
+static files with no server side.
+
+### Regenerating the icons
+
+`npm run icons` rasterises `scripts/icon.svg` into the PNG sizes iOS and Android
+need. The PNGs are committed, so this is only needed if the icon changes;
+Playwright is not a project dependency (see the script header).
 
 ## Tabs
 

@@ -6,10 +6,11 @@
   "description": "Generate Catan-style board maps and play against heuristic AI opponents.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/build-sw.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
